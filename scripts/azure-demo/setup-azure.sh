@@ -57,7 +57,7 @@ PRINCIPAL=$(az identity show -g "$RG" -n "$IDENTITY" --query principalId -o tsv)
 az identity federated-credential create -g "$RG" \
   --identity-name "$IDENTITY" --name github-main \
   --issuer https://token.actions.githubusercontent.com \
-  --subject "repo:$REPO:ref:refs/heads/main" \
+  --subject "repo:Mohamed1-2@34875234/aurora@1377914325:ref:refs/heads/main" \
   --audiences api://AzureADTokenExchange >/dev/null
 
 az role assignment create --assignee-object-id "$PRINCIPAL" \
