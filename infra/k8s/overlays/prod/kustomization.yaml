@@ -26,18 +26,18 @@ patches:
     patch: |
       - op: replace
         path: /spec/replicas
-        value: 5
+        value: 1
   - target:
       kind: Deployment
       name: llm-gateway
     patch: |
       - op: replace
         path: /spec/replicas
-        value: 3
+        value: 1
   - target:
       kind: Deployment
       name: rag-service
     patch: |
       - op: replace
         path: /spec/replicas
-        value: 3
+        value: 1
