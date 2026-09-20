@@ -21,10 +21,30 @@ const SEV = { info: "ok", warning: "warn", critical: "crit" };
 const fmt = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v) ? "--" : (Math.round(v * 10 ** d) / 10 ** d).toFixed(d));
 const esc = s => String(s).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 
+function createSessionId() {
+  if (typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  globalThis.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20)
+  ].join("-");
+}
+
 const state = {
   latest: null, hud: null, control: null,
   eng: qs.get("eng") === "1", engKeyCount: 0,
-  history: [], sessionId: crypto.randomUUID(), lastAnswer: "", requestId: 0, voiceOn: true, session: false, engine: "Eco",
+  history: [], sessionId: createSessionId(), lastAnswer: "", requestId: 0, voiceOn: true, session: false, engine: "Eco",
   flow: "idle", timer: null, lastActivity: Date.now(),
   speaking: false, listening: false, meter: false,
 };
@@ -924,7 +944,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const r = await fetch('/v1/control/demo/reset', {method:'POST'});
       if (!r.ok) throw new Error('Reset unavailable. Check the simulator connection.');
       alertDelivery.reset();
-      state.history = []; state.sessionId = crypto.randomUUID();
+      state.history = []; state.sessionId = createSessionId();
       step = 0; hint.textContent = 'Fresh demo started: 8 km trip, 65% battery. Select Next step to begin.';
       next.disabled = false;
     } catch(e) { hint.textContent = e.message; }
