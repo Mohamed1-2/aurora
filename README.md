@@ -1,225 +1,267 @@
-# AURORA · Production In-Vehicle AI Assistant (MLOps Platform)
+<div align="center">
 
-**Brand** AURORA · **Vehicle** AURORA · an end-to-end, physically-grounded AI assistant
-platform for electric vehicles — from simulated telemetry stream to LLM gateway with
-provider failover, RAG grounding, offline evaluation gating, drift monitoring, containerized
-deployment (Docker / Kubernetes / Azure) and a CI/CD pipeline.
+<img src="docs/assets/aurora-hero.svg" alt="AURORA — an in-vehicle AI assistant built around telemetry, knowledge and policy-aware answers" width="100%" />
 
-> Runs **with zero cloud**. A grounded, deterministic, always-available mock provider answers
-> from the real vehicle telemetry and knowledge base; OpenAI / Azure OpenAI are first-class
-> chain members whenever keys are provided.
+[![Azure workflow](https://github.com/Mohamed1-2/aurora/actions/workflows/aurora-azure.yml/badge.svg)](https://github.com/Mohamed1-2/aurora/actions/workflows/aurora-azure.yml)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Packaging-Docker-2496ED?logo=docker&logoColor=white)
+![Azure AKS](https://img.shields.io/badge/Deployment-Azure_AKS-0078D4)
 
----
+**A simulation-first vehicle assistant that connects live signals, retrieved knowledge, and a reproducible deployment pipeline.**
 
-## What it does
+[Architecture](#architecture) · [Try it locally](#try-it-locally) · [Azure delivery](#from-github-to-azure) · [Engineering tour](#engineering-tour) · [Project scope](#project-scope)
 
-Ask your car a question, in a plain sentence:
+</div>
+
+## The idea in 30 seconds
+
+A driver asks, **“Why is my range dropping?”** A useful answer needs more than a language model: it needs the vehicle's current state and relevant information about the vehicle.
+
+AURORA brings those together. It reads simulated EV telemetry, retrieves relevant knowledge passages, applies a request policy, and builds a response from that context. The default **mock provider** generates deterministic responses without a model API key; external model providers are optional.
+
+| Read the vehicle | Find the evidence | Explain the result |
+| :--- | :--- | :--- |
+| Charge, range, temperature, energy and diagnostic signals | BM25 retrieval over packaged knowledge, with support for a prepared manual corpus | Context-aware responses, available source citations and deterministic policy handling |
+
+> **Project scope:** an engineering and learning demo, not a certified automotive system. The default stream is simulated. No real vehicle actuation or production safety certification is claimed.
+
+## Architecture
+
+<img src="docs/assets/architecture.svg" alt="Application architecture: browser to assistant API, connected to telemetry, RAG and LLM gateway services; optional model providers and evaluation tooling" width="100%" />
+
+### Follow one question
+
+1. **Ask.** The browser sends a question to the assistant API.
+2. **Classify.** The API identifies the intent and applies the request policy. Restricted and prohibited requests receive deterministic handling before a model call.
+3. **Read.** The assistant gathers the recent telemetry window: the latest measurements and trends.
+4. **Retrieve.** The RAG service finds relevant document passages. RAG means *retrieval-augmented generation*: give the responder evidence before asking it to answer.
+5. **Respond.** The gateway invokes the configured provider. The mock provider is the default; configured model providers can use the same context.
+6. **Return.** The API returns the answer and associated response metadata, including available citations.
+
+### The services, in plain language
+
+| Service | Responsibility | Port | Current Azure demo |
+| :--- | :--- | :---: | :---: |
+| **assistant-api** | Hosts the dashboard; coordinates policy, telemetry, retrieval and answers | `8100` | Deployed by workflow |
+| **telemetry-simulator** | Produces simulated EV measurements and controllable scenarios | `8101` | Deployed by workflow |
+| **rag-service** | Searches the knowledge pack and an optional prepared corpus | `8103` | Deployed by workflow |
+| **llm-gateway** | Routes provider calls; implements caching and fallback behavior | `8102` | Deployed by workflow |
+| **monitoring** | Exposes drift, service-health and AI-quality information | `8104` | Separate from demo workflow |
+| **evaluation** | Runs offline scoring and model/retrieval comparisons | — | Separate tooling |
+
+“Deployed by workflow” describes the configuration, not a confirmed live release. Use the Actions badge and rollout results to inspect the latest run.
+
+## What you can explore
+
+| Capability | Example | What powers it |
+| :--- | :--- | :--- |
+| Vehicle questions | “What is my current range and charge?” | Aggregated telemetry + grounded response |
+| Diagnostics | “Do I have active trouble codes?” | DTC signals + retrieved explanations |
+| Scenario testing | Change simulated charging or fault conditions | Simulator controls and scenario API |
+| Dashboard / HUD | Inspect vehicle state as it changes | Browser interface + assistant API |
+| Policy behavior | Ask to disable a safety system | Deterministic request classification and refusal |
+| Prediction & explanation experiments | Inspect energy drivers and what-if behavior | Physics and optional calibration components |
+| Model experiments | Compare baseline and LoRA-assisted responses | Separate training and evaluation tools |
+
+Prediction, replay and model experiments have additional dependency or artifact requirements. Their presence in the repository does not mean the minimal Azure image includes everything needed to run them.
+
+## Try it locally
+
+Use **Python 3.11**. These commands start the services on your machine and use the mock provider, so no AI API key is required.
+
+```bash
+git clone https://github.com/Mohamed1-2/aurora.git
+cd aurora
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+python -m pip install 'uvicorn[standard]' fastapi 'pydantic>=2' \
+  pydantic-settings numpy prometheus-client httpx websockets pyyaml
+python -m pip install -e shared
+python -m pip install -r requirements-dev.txt
+
+export AURORA_GATEWAY_PROVIDER_PRIORITY=mock
+export AURORA_RAG_KB_DIR="$PWD/services/rag-service/knowledge_base"
+make services
+```
+
+Open **[localhost:8100](http://localhost:8100)** for the dashboard. On Windows, use WSL for the shell and Make commands above.
+
+Test a request:
+
+```bash
+curl --fail-with-body http://localhost:8100/v1/ask \
+  -H 'Content-Type: application/json' \
+  --data '{"question":"What is my current range and state of charge?"}'
+```
+
+The numeric answer changes with the simulator state. The mock provider is deterministic for a given context; it is not a locally running generative model.
+
+<details>
+<summary><strong>Useful local commands</strong></summary>
+
+```bash
+# Run the Python tests in the active environment.
+python -m pytest -q
+
+# Inspect the assistant log.
+tail -f /tmp/aurora-assistant.log
+
+# Stop this development stack.
+make stop
+```
+
+`make stop` uses a process-name match for `uvicorn app.main`; it can also stop other local processes with that command. Use it in a dedicated development session.
+
+The repository also contains Docker Compose configuration. The Azure workflow generates adjusted Dockerfiles that preserve the directory structure used by runtime imports; do not assume those generated images and the original Compose builds are identical.
+
+</details>
+
+## From GitHub to Azure
+
+<img src="docs/assets/deployment.svg" alt="Deployment architecture: GitHub push triggers tests and Docker builds, images go to Azure Container Registry, AKS runs the services and a load balancer exposes the dashboard" width="100%" />
+
+The active workflow is **[AURORA Azure](.github/workflows/aurora-azure.yml)**. It runs on pushes to `main` and supports manual execution.
+
+| Stage | What happens | Why it matters |
+| :--- | :--- | :--- |
+| **Test** | Run pytest | Catch regressions before deployment |
+| **Prepare** | Generate demo Dockerfiles and Kubernetes YAML | Keep the demo configuration explicit |
+| **Authenticate** | Exchange a GitHub OIDC token for Azure credentials | Avoid a stored, long-lived Azure password |
+| **Build & check** | Build four Linux images and import each application | Catch packaging and startup-import failures |
+| **Publish** | Push uniquely tagged images to private ACR | Associate each image with a commit and workflow run |
+| **Deploy** | Apply manifests and wait for deployment rollouts | Confirm pods reach the expected ready state |
+| **Health check** | Call the assistant health endpoint inside its pod | Confirm the process answers a basic health request |
+
+**A health check is not an end-to-end quality evaluation.** Retrieval, grounded-answer quality, browser behavior and model experiments require their own checks. The current workflow does not run the separate golden-set evaluation gate.
+
+### One-time setup vs. every release
+
+**Once:** create or select the AKS cluster; run [setup-azure.sh](scripts/azure-demo/setup-azure.sh) to configure ACR, GitHub federation, role assignments, a namespace and repository variables. Review its repository/branch and subscription settings before running it for another account.
+
+**Every release:** push to `main`; GitHub's runner builds and publishes images, then updates AKS. Docker runs on the runner, so a developer does not need to keep their laptop online after the push.
+
+<details>
+<summary><strong>Inspect a deployment from your terminal</strong></summary>
+
+Prerequisites: authenticated `az` and `gh`, plus `kubectl` and Azure `kubelogin`.
+
+```bash
+# Inspect recent pipeline runs.
+gh run list --repo Mohamed1-2/aurora --workflow aurora-azure.yml --limit 5
+
+# Connect to the configured demo cluster.
+az aks get-credentials --resource-group aurora-rg --name aurora
+kubelogin convert-kubeconfig -l azurecli
+
+# Inspect desired replicas, running pods and network services.
+kubectl get deployments,pods,services -n aurora
+
+# Read recent application logs.
+kubectl logs -n aurora deployment/assistant-api --tail=100
+
+# Find the demo's public IP. Open http://EXTERNAL-IP when assigned.
+kubectl get service aurora-web -n aurora
+```
+
+A failed test blocks the deploy job. `ImagePullBackOff` points toward image or registry access problems; `CrashLoopBackOff` calls for application logs; `Pending` requires inspecting scheduling events.
+
+</details>
+
+### Cost and deployment boundaries
+
+The generated demo runs **one replica per core service**, uses the **mock provider**, disables proactive polling, and uses **Recreate** updates. Recreate stops the old pod before replacing it, so releases can interrupt service.
+
+AKS nodes, registry storage and networking are billable resources. “Free” AKS cluster management does not make those resources free. Stopping the cluster reduces compute use, but retained resources may still cost money.
+
+The demo exposes **HTTP**, not configured HTTPS. TLS, user authentication, rate limits, durable application state and recovery procedures are next steps before a production release. Some debug UI calls still target localhost; operations endpoints deliberately restrict access to local clients.
+
+## Quality, policy and model experiments
+
+### Policy before generation
+
+| Request class | Behavior |
+| :--- | :--- |
+| Read-only | Build a response from vehicle and document context |
+| Safe action | Follow the implemented application policy |
+| Restricted action | Return deterministic confirmation-required handling |
+| Prohibited action | Refuse without consulting the language model |
+
+These are application controls and testable behaviors—not proof of automotive safety or authorization to control a real vehicle.
+
+### Reproducible experiments
+
+- **Replay:** fixed telemetry snapshots make repeatable answer comparisons possible.
+- **Retrieval:** BM25 indexing and retrieval tests make document selection inspectable.
+- **Evaluation:** golden-set scoring covers signal accuracy, grounding, refusal and policy behavior.
+- **Fine-tuning:** separate simulation and real PEFT/LoRA paths distinguish pipeline exercises from actual model training.
+- **Monitoring:** separate drift and quality tooling helps inspect changes over time.
+
+The data pipelines support TUM driving telemetry and EPFL charging sessions as separate domains. Review source licenses and provenance before redistribution; real telemetry inputs do not make synthetically generated question–answer pairs human-labelled ground truth.
+
+## Engineering tour
+
+For a technical walkthrough or interview, explain the system in this order:
+
+1. **Problem:** a vehicle assistant needs current measurements and relevant knowledge.
+2. **Design:** separate telemetry, retrieval and provider routing behind one assistant API.
+3. **Packaging:** Docker images capture application code and runtime dependencies.
+4. **Delivery:** GitHub Actions tests, builds, publishes and deploys to AKS.
+5. **Identity:** OIDC establishes who the workflow is; role assignments determine what it can do.
+6. **Evidence:** show a real workflow run, pod status, logs and an actual API response.
+7. **Tradeoffs:** one-node learning environment, process-local state, mock AI and incomplete production hardening.
+
+| Common term | Plain-language meaning |
+| :--- | :--- |
+| Container image | Packaged application and its dependencies |
+| Container | A running instance of an image |
+| Registry | A store for built images |
+| Pod | Kubernetes' smallest deployable unit |
+| Deployment | Desired application image and replica count |
+| Service | Stable networking for a set of pods |
+| CI / CD | Automated checks / automated delivery or deployment |
+| OIDC | A way to establish identity using signed tokens |
+| RAG | Retrieve relevant evidence before generating an answer |
+
+## Explore the repository
 
 ```text
-> What is my current range and state of charge?
-Estimated remaining range is **201 km** at 62% charge. ...
-> Do I have any active diagnostic trouble codes?
-No active diagnostic trouble codes in the telemetry stream right now. ...
-> Tell me a joke.
-I don't have reliable data to answer that from the vehicle stream or the knowledge base...
+.github/workflows/aurora-azure.yml   Active Azure delivery workflow
+scripts/azure-demo/                 Azure setup + demo manifest generator
+services/assistant-api/             Dashboard, policy, context and API
+services/telemetry-simulator/       EV simulation and scenario engine
+services/rag-service/               Retrieval and packaged knowledge
+services/llm-gateway/               Provider routing and completions
+services/calibration/               Prediction/calibration experiments
+services/evaluation/                Datasets, scoring and comparisons
+services/monitoring/                Drift and quality monitoring
+shared/vehicle_ai/                 Shared schemas and utilities
+infra/k8s/                         Kubernetes configuration
+infra/terraform/                   Separate infrastructure provisioning path
+tests/                             Python test suite
 ```
 
-Every answer is **grounded**: it is built from the *live aggregated telemetry window*
-(SOC, range, battery/coolant temperatures, tyre pressures, powers, DTCs…) plus *retrieved
-manual passages* with **citations** `【doc：section】`, and unanswerable questions are
-**refused honestly** instead of hallucinated.
+## Go deeper
 
-A **safety policy layer** classifies every request before it ever reaches the LLM:
+| Guide | What you will learn |
+| :--- | :--- |
+| [Architecture](docs/architecture.md) | Telemetry, grounding, service contracts and scoring |
+| [Interactive demo](docs/interactive-demo.md) | Application walkthrough and controls |
+| [Dataset design](docs/dataset.md) | Data generation, provenance and split strategy |
+| [Fine-tuning](docs/finetuning.md) | Simulation vs. real training and comparisons |
+| [Operations showcase](docs/operations-showcase.md) | Local trace and release-management experiments |
+| [Azure workflow](.github/workflows/aurora-azure.yml) | The exact automated delivery steps |
 
-| tier | behaviour | example |
-|---|---|---|
-| `read_only` | routed to the grounded LLM | “What’s my range?” |
-| `safe_action` | informational with side-effects | “send a report” |
-| `restricted_action` | confirmation required, LLM not consulted | “start charging” |
-| `prohibited_action` | **deterministic refusal**, never the LLM | “disable thermal protection”, “reflash ECU” |
-
-Requests that target safety-critical systems (braking, battery management, firmware,
-autopilot, speed limits, data exfiltration) are refused deterministically with an
-authoritative message — an automotive-grade boundary, not an enterprise chatbot.
-
-## System map
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        AURORA (physically-grounded)                     │
-│                                                                        │
-│  telemetry-simulator ──WS/HTTP──► assistant-api ──RAG──► rag-service    │
-│   ·8101  physics-lite EV model     ·8100  intent+grounding  ·8103 BM25 │
-│   ·scenarios: leak/dtc/drift/      │         core            KB: 9 docs │
-│      charge/battery_heat            ├─context window──► llm-gateway     │
-│                                     │                   ·8102 router ───┤
-│                                     │        providers: azure-openai ▶ │
-│                                     │                    openai ▶     │
-│                                     │                    mock (offline)│
-│                                     ▼                                 ▼
-│  monitoring ·8104  drift (PSI+KS)  eval gate · pass_rate ≥ 0.80 ─ CI   │
-│        └── Prometheus /metrics      └── golden set, replay snapshot    │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Services
-
-| service | port | role |
-|---|---|---|
-| `telemetry-simulator` | 8101 | physics-lite EV stream (1 s), OBD/DTC injection, WS + REST |
-| `llm-gateway` | 8102 | routing, circuit breaker, TTL cache, $ cost ledger, safety |
-| `rag-service` | 8103 | deterministic BM25 index over the AURORA manual |
-| `assistant-api` | 8100 | intents, safety policy, grounding, prompt builder, web dashboard |
-| `monitoring` | 8104 | PSI + KS drift detection vs committed baseline, fleet health, AI-quality |
-| `evaluation` | – | golden-set + PEFT/LoRA pipeline gate used by CI |
-
-**No cloud required:** the default provider priority is `mock` — the grounded,
-deterministic, offline engine that makes CI and evaluations reproducible.
-
-## Quickstart
-
-```bash
-make install     # .venv + shared package (editable)
-
-# containerised stack (Docker Desktop required) — one command:
-docker compose up -d --build
-open http://localhost:8100            # web dashboard
-
-# or run every service in-process on the host:
-make services
-make demo                             # end-to-end walkthrough + drift demo
-
-make test            # 23 tests (schemas, telemetry math, RAG, mock, eval metrics)
-make lint            # compileall + import smoke
-make eval-e2e        # acceptance gate against the golden set (expect ≥ 0.80)
-```
-
-### The evaluation gate
-
-The same gate CI blocks on (now **16 cases** including safety/adversarial policy cases):
-
-```bash
-cd services/evaluation && ../../.venv/bin/python run.py \
-    --assistant http://127.0.0.1:8105 --environment ci
-# GATE: ✓ ACCEPTED — ship to production   (pass rate 1.0 ≥ 0.8)
-```
-
-```bash
-# containerised, reproducible in CI:
-docker compose run --rm eval --assistant http://assistant-eval:8100
-```
-
-Metrics are **grounded**: `signal_accuracy` (did it quote the live numbers correctly,
-within tolerance), `signal_presence`, `doc_grounding` (citations match the manual),
-`refusal_honesty` (unanswerable ⇒ refusal), `intent_match`, `text_recall`, and
-`policy_compliance` (did the safety policy tier classify the request correctly and
-refuse where required). Reports are registered to **MLflow** when a tracking server
-is configured.
-
-### PEFT / LoRA fine-tuning pipeline
-
-`make data` builds a **production-shaped training corpus** (real-sounding utterances +
- live-vehicle telemetry snapshots + grounded, cited answers + over-sampled safety
- negatives) curated and version-hashed — see [docs/dataset.md](docs/dataset.md) for the
- schema and curation rules. Optionally ground the per-row telemetry in **real UDS field
- data** (72k km, 7 BEVs, Schreiber et al.) with
- `make data TELEMETRY_DIR=/path/to/electric-vehicle-uds-dataset-main`; it falls back to
- the seeded mock without the download.
-
-For the real LoRA experiment, **AURORA v2** builds a much larger corpus grounded in real
-public telemetry (`make data-v2 TUM_DIR=... EPFL_DIR=...`): **TUM EV Usage Data**
-(CC-BY-NC-4.0) for driving telemetry resampled into temporally-aligned windows, plus
-**EPFL Level-3 Charging** (MIT) for timestamp-aligned charging sessions — kept as two
-separate domains and never combined. Every row carries full provenance
-(`data_type: real_telemetry`, `qa_type: synthetic_generated`) and splits are assigned by
-atomic unit to prevent leakage. See [docs/dataset.md](docs/dataset.md#15) and
-[docs/dataset-v2-inspection-report.md](docs/dataset-v2-inspection-report.md).
-
-`make finetune` then prepares the train / validation / adversarial splits and publishes a
-LoRA adapter. It runs in two modes:
-
-* `make finetune` — **CI-safe simulation**: distills a grounded adapter from the
-  mock provider (no torch/GPU), proves the dataset → LoRA config → eval → registry
-  *pipeline*.
-* `make finetune-real` — genuine **transformers + peft** (LoRA `r=8, α=16, dropout=0.1`
-  on `q_proj`/`v_proj`) when those libs + a base model are configured.
-* **Colab (real GPU):** open [`colab/train_lora.ipynb`](colab/train_lora.ipynb), Run-all
-  on a free T4, and it produces the same Drop-in `adapter/` + `peft_config.json` that the
-  repo's eval consumes.
-
-Both emit `peft_config.json` + an `adapter/` into `artifacts/finetune/` and feed the
-same golden-set + MLflow registration path. `make compare` runs
-[`services/evaluation/compare.py`](services/evaluation/compare.py) to evaluate the
-adapter **head-to-head against the baseline** on the identical deterministic golden set
-and blocks on any regression. See [docs/finetuning.md](docs/finetuning.md) for the full
-production story.
-
-### LLM provider chain
-
-`azure-openai, openai, mock` (ordered failover, weighted routing, per-provider circuit
-breaker, TTL cache, spend ledger). Set in `.env`:
-
-```ini
-AURORA_GATEWAY_PROVIDER_PRIORITY=azure-openai,openai,mock
-AURORA_GATEWAY_AZURE_OPENAI_ENDPOINT=https://<res>.openai.azure.com/
-AURORA_GATEWAY_AZURE_OPENAI_API_KEY=...
-AURORA_GATEWAY_OPENAI_API_KEY=...
-```
-
-The mock provider keeps every demo/CI/eval run working offline regardless of connectivity.
-
-## Truth & reproducibility
-
-* Telemetry: **deterministic replay snapshot** in `services/evaluation/datasets/telemetry_snapshot.json`
-  used by the eval harness; live simulator seeded (`AURORA_TELEMETRY_SEED`). Rich signal
-  set incl. pack voltage/current, cabin temp, odometer, GPS, DTCs.
-* RAG: chunking + BM25 are pure functions ⇒ **index-hash pinned** (`rag-index-v4`). The
-  provenanced owner's-manual corpus is the primary authority, layered under a
-  lowest-build-order knowledge-pack for driving-coach content the manual never states.
-* Prompts/versions: `aurora-prompt-v9` · `rag-index-v4` · shared `vehicle-ai-shared 2.5.0`.
-* Drift baseline: `services/monitoring/baseline.json` (6000 pts/signal across 13 signals,
-  seed 42; regenerate with `make baseline`).
-* AI-quality metrics: Prometheus counters (grounding, refusals, safety blocks, fallbacks,
-  cache, cost, tokens) aggregated at `monitoring:/ai-quality`.
-
-## Deployment
-
-```bash
-make build     # docker compose build        (java-free, alpine-slim based)
-make up        # run the fleet in containers
-
-kubectl kustomize infra/k8s/overlays/prod | kubectl apply -f -   # AKS
-cd infra/terraform && terraform init && terraform apply          # Azure RG/ACR/AKS/KeyVault
-```
-
-`.github/workflows/aurora-cicd.yml` runs **lint → test → build & push images → eval gate
-→ deploy to AKS** on `main`; the eval gate fails the PR if `pass_rate < 0.80`.
-
-## Repository layout
-
-```
-shared/vehicle_ai/        shared contracts & utilities (one source of truth)
-services/
-  telemetry-simulator/    physics-lite EV model + WS/REST + scenarios
-  llm-gateway/            providers, router, safety, cache, cost
-  rag-service/            BM25 index + knowledge_base/ (9 AURORA manual docs)
-  assistant-api/          core service + dashboard (static/)
-  monitoring/             drift detector (PSI+KS) + fleet health
-  evaluation/             golden set, metrics, MLflow client, run.py, data/ (dataset pipeline)
-  scripts/                gen_baseline.py, demo.py
-infra/k8s/                kustomize base + prod overlay (AKS)
-infra/terraform/          Azure RG · ACR · AKS · KeyVault · MLflow store
-tests/                    pytest suite (schemas, telemetry, RAG, mock, eval)
-.github/workflows/        aurora-cicd.yml
-```
-
-## Docs
-
-* [docs/architecture.md](docs/architecture.md) — deep dive: contracts, grounding, eval math, drift.
-* [docs/dataset.md](docs/dataset.md) — the training corpus: schema, sources, curation, leak-free splits.
-* [docs/finetuning.md](docs/finetuning.md) — fine-tuning story: dataset, LoRA, baseline-vs-finetuned gate.
-* [docs/demo.md](docs/demo.md) — scripted walkthrough incl. drift injection and gate run.
+For deployment behavior, the active workflow and `scripts/azure-demo/prepare.py` are the source of truth. Older infrastructure examples may use different names, replica counts or release gates.
 
 ---
 
-*Platform version 2.5.0 — prompt `aurora-prompt-v9` — RAG index `rag-index-v4` — telemetry schema 1.3.0.*
+<div align="center">
+
+**Understand the vehicle. Retrieve the evidence. Make the system inspectable.**
+
+AURORA · Python microservices · Retrieval · Simulation · Azure delivery
+
+</div>
