@@ -83,7 +83,7 @@ print('NO_TORCH_DEGRADE_OK')
     def test_degrades_cleanly_without_torch(self):
         import os
         import subprocess
-        exe = ROOT / ".venv" / "bin" / "python"
+        exe = sys.executable
         code = self._CODE.replace(
             'sys.path.insert(0, \'services/llm-gateway\')',
             f'sys.path.insert(0, {str(ROOT / "services/llm-gateway")!r})',
