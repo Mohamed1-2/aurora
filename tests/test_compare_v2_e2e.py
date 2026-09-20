@@ -20,7 +20,14 @@ import compare_v2 as c  # noqa: E402
 from fastapi import FastAPI  # noqa: E402
 from vehicle_ai.schemas import GatewayRequest  # noqa: E402
 
-ROWS = [json.loads(l) for l in (ROOT / "artifacts/dataset/v2/test.jsonl").open()]
+_DATASET = ROOT / "artifacts/dataset/v2/test.jsonl"
+if not _DATASET.exists():
+    pytest.skip(
+        f"{_DATASET} not present (run services/evaluation/data/v2/build.py to build it)",
+        allow_module_level=True,
+    )
+
+ROWS = [json.loads(l) for l in _DATASET.open()]
 SMOKE = c.select_smoke(ROWS, per_scenario=1)
 
 

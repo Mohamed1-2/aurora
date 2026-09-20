@@ -19,9 +19,23 @@ from app.router import LlmRouter  # noqa: E402
 ADAPTER = "/Users/mohamedaldofani/in-vehicle-ai-assistant/artifacts/finetune/v2/adapter"
 
 
+_DATASET = ROOT / "artifacts/dataset/v2/test.jsonl"
+if not _DATASET.exists():
+    pytest.skip(
+        f"{_DATASET} not built; run services/evaluation/data/v2/build.py first",
+        allow_module_level=True,
+    )
+
+_DATASET = ROOT / "artifacts/dataset/v2/test.jsonl"
+if not _DATASET.exists():  # CI has no artifacts/ (gitignored) — skip, don't crash
+    pytest.skip(
+        f"{_DATASET} not present (run services/evaluation/data/v2/build.py to build it)",
+        allow_module_level=True,
+    )
+
 ROWS = [
     json.loads(l)
-    for l in (ROOT / "artifacts/dataset/v2/test.jsonl").open()
+    for l in _DATASET.open()
 ]
 
 
