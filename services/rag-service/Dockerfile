@@ -14,6 +14,7 @@ COPY shared /app/shared
 RUN pip install --no-cache-dir -e /app/shared
 
 ENV SERVICE_PORT=8103
+ENV AURORA_RAG_KB_DIR=/app/knowledge_base
 EXPOSE ${SERVICE_PORT}
 
 COPY services/rag-service/app /app/app
