@@ -1,0 +1,191 @@
+{
+  "v": "v1",
+  "fixture": true,
+  "generated_at": 1810000152.0,
+  "vehicle": { "id": "ORION-X-TEST-01", "mode": "normal", "charging": false },
+  "telemetry": {
+    "provenance": "simulator",
+    "status": "live",
+    "source": "live",
+    "frame_count": 1240,
+    "window_seconds": 10.0,
+    "vehicle_id": "ORION-X-TEST-01",
+    "mode": "normal",
+    "charging": false,
+    "signals": {
+      "battery_soc_pct": { "label": "Battery SOC", "unit": "%", "min": 0, "max": 100, "present": true, "value": 61.4, "window_min": 60.9, "window_max": 62.0, "trending_per_min": -0.12, "provenance": "simulator", "spark": [[0, 62.0], [10, 61.8], [20, 61.7], [30, 61.6], [40, 61.5], [50, 61.4]] },
+      "distance_to_empty_km": { "label": "Remaining range", "unit": "km", "min": 0, "max": 600, "present": true, "value": 182.0, "window_min": 181.0, "window_max": 183.5, "trending_per_min": -0.3, "provenance": "simulator", "spark": null },
+      "vehicle_speed_kph": { "label": "Speed", "unit": "km/h", "min": 0, "max": 200, "present": true, "value": 78.5, "window_min": 62.0, "window_max": 84.0, "trending_per_min": 0.0, "provenance": "simulator", "spark": [[0, 66.0], [10, 71.0], [20, 76.0], [30, 80.0], [40, 79.0], [50, 78.5]] },
+      "motor_power_kw": { "label": "Motor power", "unit": "kW", "min": -180, "max": 180, "present": true, "value": 34.6, "window_min": -12.0, "window_max": 41.0, "trending_per_min": 0.0, "provenance": "simulator", "spark": [[0, 28.0], [10, 35.0], [20, -12.0], [30, 38.0], [40, 34.0], [50, 34.6]] },
+      "charge_rate_kw": { "label": "Charge rate", "unit": "kW", "min": 0, "max": 150, "present": true, "value": 0.0, "window_min": 0.0, "window_max": 0.0, "trending_per_min": 0.0, "provenance": "simulator", "spark": null },
+      "battery_temp_c": { "label": "Battery pack temperature", "unit": "degC", "min": -40, "max": 120, "present": true, "value": 47.2, "window_min": 46.4, "window_max": 47.9, "trending_per_min": 0.6, "provenance": "simulator", "spark": [[0, 46.4], [10, 46.8], [20, 47.0], [30, 47.1], [40, 47.2], [50, 47.2]] },
+      "coolant_temp_c": { "label": "Coolant temperature", "unit": "degC", "min": -40, "max": 120, "present": true, "value": 51.0, "window_min": 49.8, "window_max": 51.2, "trending_per_min": 0.4, "provenance": "simulator", "spark": null },
+      "tire_pressure_fl_kpa": { "label": "Tyre pressure · front left", "unit": "kPa", "min": 150, "max": 350, "present": true, "value": 250.0, "window_min": 249.6, "window_max": 250.3, "trending_per_min": 0.1, "provenance": "simulator", "spark": [[0, 250.0], [10, 250.1], [20, 250.0], [30, 250.0], [40, 250.0], [50, 250.0]] },
+      "tire_pressure_fr_kpa": { "label": "Tyre pressure · front right", "unit": "kPa", "min": 150, "max": 350, "present": true, "value": 251.1, "window_min": 250.7, "window_max": 251.3, "trending_per_min": 0.1, "provenance": "simulator", "spark": [[0, 251.1], [10, 251.1], [20, 251.2], [30, 251.1], [40, 251.1], [50, 251.1]] },
+      "tire_pressure_rl_kpa": { "label": "Tyre pressure · rear left", "unit": "kPa", "min": 150, "max": 350, "present": true, "value": 249.5, "window_min": 249.2, "window_max": 249.7, "trending_per_min": 0.1, "provenance": "simulator", "spark": [[0, 249.6], [10, 249.6], [20, 249.5], [30, 249.5], [40, 249.5], [50, 249.5]] },
+      "tire_pressure_rr_kpa": { "label": "Tyre pressure · rear right", "unit": "kPa", "min": 150, "max": 350, "present": true, "value": 221.1, "window_min": 232.0, "window_max": 246.0, "trending_per_min": -22.61, "provenance": "simulator", "spark": [[0, 246.0], [10, 242.5], [20, 238.4], [30, 233.6], [40, 228.9], [50, 221.1]] },
+      "pack_current_a": { "label": "Pack current", "unit": "A", "min": -400, "max": 400, "present": true, "value": 88.4, "window_min": 70.0, "window_max": 110.0, "trending_per_min": 0.0, "provenance": "simulator", "spark": null },
+      "battery_voltage_v": { "label": "Pack voltage", "unit": "V", "min": 0, "max": 900, "present": true, "value": 391.2, "window_min": 388.0, "window_max": 394.0, "trending_per_min": 0.0, "provenance": "simulator", "spark": null },
+      "odometer_km": { "label": "Odometer", "unit": "km", "min": 0, "max": null, "present": true, "value": 12734.4, "window_min": 12734.1, "window_max": 12734.6, "trending_per_min": 0.0, "provenance": "simulator", "spark": null }
+    },
+    "dtc_codes": [],
+    "warnings": []
+  },
+  "proactive": {
+    "provenance": "derived",
+    "generated_at": 1810000150.0,
+    "poll_interval_s": 5.0,
+    "active": [
+      {
+        "event_id": "a1b2c3d4e5f6",
+        "type": "tire_pressure_leak",
+        "severity": "warning",
+        "status": "full",
+        "title": "Tyre pressure drop",
+        "summary": "Pressure on RR is falling at 23 kPa/min (25.1 kPa over 45 s).",
+        "triggers": [{ "signal": "tire_pressure_rr_kpa_slope_per_min", "observed": -22.61, "threshold": -12.0, "direction": "below", "unit": "kPa/min", "window_seconds": 45, "samples": 46 }],
+        "evidence": [
+          { "signal": "tire_pressure_rr_kpa", "value": 221.1, "unit": "kPa", "label": "current pressure" },
+          { "signal": "tire_pressure_rr_kpa_slope_per_min", "value": -22.61, "unit": "kPa/min", "label": "pressure change rate" }
+        ],
+        "signals_used": ["tire_pressure_rr_kpa"],
+        "first_seen_ts": 1810000120.0,
+        "last_seen_ts": 1810000150.0,
+        "occurrence_count": 1,
+        "dismissed": false
+      },
+      {
+        "event_id": "99aa88bb77cc",
+        "type": "battery_overtemperature",
+        "severity": "warning",
+        "status": "full",
+        "title": "Battery temperature high",
+        "summary": "Battery temperature averaged 47.2 °C over the last 45 s (limit 46 °C).",
+        "triggers": [{ "signal": "battery_temp_c", "observed": 47.2, "threshold": 46.0, "direction": "above", "unit": "degC", "window_seconds": 45, "samples": 46 }],
+        "evidence": [],
+        "signals_used": ["battery_temp_c"],
+        "first_seen_ts": 1810000100.0,
+        "last_seen_ts": 1810000150.0,
+        "occurrence_count": 1,
+        "dismissed": false
+      }
+    ],
+    "recent": [
+      {
+        "event_id": "1111aaaa2222",
+        "type": "low_range",
+        "severity": "info",
+        "status": "full",
+        "title": "Low driving range",
+        "summary": "Remaining range 38 km was below the 50 km alert level (now recharged).",
+        "triggers": [{ "signal": "distance_to_empty_km", "observed": 38.0, "threshold": 50.0, "direction": "below", "unit": "km" }],
+        "evidence": [],
+        "signals_used": ["distance_to_empty_km"],
+        "first_seen_ts": 1809998400.0,
+        "last_seen_ts": 1809998440.0,
+        "occurrence_count": 1,
+        "dismissed": true
+      }
+    ],
+    "detectors_eligible": ["low_range", "tire_pressure_leak", "battery_overtemperature", "charging_stall", "dtc_escalation"],
+    "detectors_skipped_no_signal": { "prediction_discharge_risk": ["<300 s coverage: 1240 frames>"] }
+  },
+  "prediction": {
+    "provenance": "prediction",
+    "available": true,
+    "status": "active",
+    "frame_count": 1240,
+    "min_frames": 300,
+    "full_coverage_frames": 3000,
+    "coverage_pct": 41.3,
+    "service": { "active": true, "status": "active", "model_version": "aurora-v2-ws1-r1-cal", "artifact_dir": "artifacts/calibration" },
+    "trip": { "mode": "scenario", "active": true, "trip": { "destination_km": 92.0, "remaining_km": 64.2, "cabin_set_temp_c": 21.0, "ambient_temp_c": 14.0, "completed": false } },
+    "explanation": {
+      "shape": "absolute",
+      "status": "active",
+      "fallback_reason": "",
+      "model_version": "aurora-v2-ws1-r1-cal",
+      "capacity_kwh": 58.0,
+      "to_prediction": {
+        "physics_soc_drop_pct": 0.2529,
+        "ml_residual_pct": 0.1117,
+        "calibrated_soc_drop_pct": 0.3646,
+        "speed_band": "60-90",
+        "lambda_applied": 1.0,
+        "model_version": "v2-ws1-r1",
+        "status": "active",
+        "fallback_reason": ""
+      },
+      "from_prediction": null,
+      "physics_contributions": [
+        { "key": "aero", "label": "Aerodynamic drag", "contribution_soc_pct": 0.0743, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "normalized so drivers sum to physics_soc_drop_pct" },
+        { "key": "rolling", "label": "Rolling resistance", "contribution_soc_pct": 0.1218, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "normalized so drivers sum to physics_soc_drop_pct" },
+        { "key": "cabin_thermal", "label": "Cabin thermal", "contribution_soc_pct": 0.0249, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "21.0 °C cabin set, 14.0 °C ambient" },
+        { "key": "auxiliary", "label": "Auxiliary loads", "contribution_soc_pct": 0.0319, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "controls + thermal management" }
+      ],
+      "ml_contributions": [
+        { "key": "regen_decel_energy_kwh", "label": "Regenerative braking energy", "contribution_soc_pct": 0.0321, "delta_soc_pct": null, "value_wh": null, "provenance": "ml", "direction": "increases_drop", "description": "ML model attribution (SHAP on frozen v2-ws1-r1)" },
+        { "key": "speed_kph_mean", "label": "Average speed", "contribution_soc_pct": 0.0228, "delta_soc_pct": null, "value_wh": null, "provenance": "ml", "direction": "increases_drop", "description": "ML model attribution (SHAP on frozen v2-ws1-r1)" },
+        { "key": "physics_soc_drop_pct", "label": "Physics SOC drop (input)", "contribution_soc_pct": 0.0778, "delta_soc_pct": null, "value_wh": null, "provenance": "ml", "direction": "increases_drop", "description": "ML model attribution (SHAP on frozen v2-ws1-r1)" }
+      ],
+      "ml_bias_soc_pct": 0.1117,
+      "top_causes": [
+        { "key": "rolling", "label": "Rolling resistance", "contribution_soc_pct": 0.1218, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "normalized so drivers sum to physics_soc_drop_pct" },
+        { "key": "physics_soc_drop_pct", "label": "Physics SOC drop (input)", "contribution_soc_pct": 0.0778, "delta_soc_pct": null, "value_wh": null, "provenance": "ml", "direction": "increases_drop", "description": "ML model attribution (SHAP on frozen v2-ws1-r1)" },
+        { "key": "aero", "label": "Aerodynamic drag", "contribution_soc_pct": 0.0743, "delta_soc_pct": null, "value_wh": null, "provenance": "physics", "direction": "increases_drop", "description": "normalized so drivers sum to physics_soc_drop_pct" },
+        { "key": "regen_decel_energy_kwh", "label": "Regenerative braking energy", "contribution_soc_pct": 0.0321, "delta_soc_pct": null, "value_wh": null, "provenance": "ml", "direction": "increases_drop", "description": "ML model attribution (SHAP on frozen v2-ws1-r1)" }
+      ],
+      "identity_checks": {
+        "physics_sum_matches": true,
+        "ml_sum_matches": true,
+        "blend_matches": true,
+        "delta_matches": null,
+        "tolerance_soc_pct": 1e-6
+      }
+    }
+  },
+  "models": {
+    "provenance": "derived",
+    "providers": {
+      "mock": { "configured": true, "models": ["aurora-1-mock"], "region": null },
+      "peft": { "configured": true, "models": ["astrolora-r8-alpha16"], "region": null },
+      "peft-base": { "configured": true, "models": ["llama-2-7b-base"], "region": null },
+      "openai": { "configured": false, "models": [], "region": "us-east" },
+      "azure-openai": { "configured": false, "models": [], "region": "eastus2" }
+    },
+    "priority_chain": ["mock"],
+    "health": { "mock": { "circuit": "closed" }, "peft": { "circuit": "open" }, "peft-base": { "circuit": "closed" } },
+    "healthy_chain": ["mock"],
+    "serving_note": "on this stack the assistant is answered by the mock provider."
+  },
+  "documents": {
+    "provenance": "documentation",
+    "index": {
+      "rag_index_version": "rag-index-v4-6eb8aec94948b7ce",
+      "n_chunks": 403,
+      "n_terms": 6412,
+      "avg_chunk_len": 182.4,
+      "chunks_by_tier": { "tier1": 122, "tier2": 142, "tier3": 139 },
+      "chunks_by_audience": { "driver": 311, "manual": 48, "appendix": 44 },
+      "documents": ["km-owner-guide", "km-tyre-guide", "km-safety-guide"]
+    },
+    "label": "internal assistant guide — not the manufacturer's documentation"
+  },
+  "services": { "provenance": "derived", "assistant": "ok", "gateway": "ok", "rag": "ok", "simulator": "ok" },
+  "identity": {
+    "service": "assistant-api",
+    "version": "0.28.0",
+    "prompt_version": "aurora-prompt-v9",
+    "rag_index_version": "rag-index-v4-6eb8aec94948b7ce",
+    "environment": "local",
+    "run": "simulated eval stack",
+    "telemetry_provenance": "simulator"
+  },
+  "provenance_legend": {
+    "measured": "Raw quantitative value from the vehicle's telemetry stream.",
+    "prediction": "Output of the calibrated SOC-drop model (physics baseline + calibrated ML residual).",
+    "derived": "Computed in code from the values above (proactive triggers, aggregation, service health).",
+    "documentation": "Text or metadata from the versioned RAG knowledge base.",
+    "simulator": "Telemetry synthesized by the simulator under test on this stack — not a real vehicle."
+  }
+}

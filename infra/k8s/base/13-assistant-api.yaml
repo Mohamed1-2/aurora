@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assistant-api
+  namespace: aurora
+  labels: &labels
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: assistant-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: assistant-api
+          image: aurora.azurecr.io/assistant-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8100}
+          envFrom:
+            - configMapRef: {name: aurora-env}
+            - secretRef: {name: aurora-secrets}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 200m, memory: 384Mi}
+            limits: {cpu: 1, memory: 1Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assistant-api
+  namespace: aurora
+spec:
+  selector:
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: assistant-api
+  ports:
+    - {port: 8100, targetPort: http}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: assistant-api
+  namespace: aurora
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: assistant-api
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

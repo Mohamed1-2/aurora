@@ -1,0 +1,119 @@
+name: aurora-cicd
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+  ACR_LOGIN_SERVER: auroraacr.azurecr.io
+  ACR_NAME: auroraacr
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: syntax + import smoke
+        run: |
+          pip install -qe shared
+          python -m compileall -q shared services scripts
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: install
+        run: |
+          pip install -q "uvicorn[standard]" "fastapi" "pydantic>=2" "pydantic-settings" numpy prometheus-client httpx websockets pyyaml pytest
+          pip install -qe shared
+      - name: pytest
+        run: python -m pytest -q
+
+  finetune:
+    name: finetune pipeline (simulate + artifacts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: install
+        run: |
+          pip install -q "fastapi" "pydantic>=2" "pydantic-settings" pyyaml
+          pip install -qe shared
+      - name: build + validate the production-shaped dataset, then prepare the PEFT/LoRA adapter
+        run: |
+          python services/evaluation/data/generate.py
+          python services/evaluation/finetune.py simulate
+          python -c "import ast; ast.parse(open('services/evaluation/compare.py').read()); print('compare.py OK')"
+          python -c "import json, ast; nb=json.load(open('colab/train_lora.ipynb')); [ast.parse(''.join(c['source'])) for c in nb['cells'] if c['cell_type']=='code' and not ''.join(c['source']).lstrip().startswith('!')]; print('notebook cells OK')"
+
+  build-and-push:
+    name: build & push images
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AURORA_ACR_USERNAME }}
+          password: ${{ secrets.AURORA_ACR_PASSWORD }}
+      - name: build & push (all services + sha tag)
+        run: |
+          for svc in telemetry-simulator llm-gateway rag-service assistant-api monitoring; do
+            docker build -f services/$svc/Dockerfile -t $ACR_LOGIN_SERVER/$svc:$IMAGE_TAG -t $ACR_LOGIN_SERVER/$svc:latest .
+            docker push -q $ACR_LOGIN_SERVER/$svc:$IMAGE_TAG
+            docker push -q $ACR_LOGIN_SERVER/$svc:latest
+          done
+          docker build -f services/evaluation/Dockerfile -t $ACR_LOGIN_SERVER/evaluation:$IMAGE_TAG -t $ACR_LOGIN_SERVER/evaluation:latest .
+          docker push -q $ACR_LOGIN_SERVER/evaluation:$IMAGE_TAG
+          docker push -q $ACR_LOGIN_SERVER/evaluation:latest
+
+  eval-gate:
+    name: eval gate (rollout blocker)
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.AURORA_ACR_USERNAME }}
+          password: ${{ secrets.AURORA_ACR_PASSWORD }}
+      - name: run acceptance gate in containers
+        run: |
+          docker compose --profile eval run --rm --no-build eval --assistant http://assistant-eval:8100
+
+  deploy-aks:
+    name: deploy to AKS (prod)
+    needs: [eval-gate]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AURORA_AZURE_CREDENTIALS }}
+      - name: get credentials
+        run: |
+          az aks get-credentials --resource-group aurora-rg --name aurora-aks --overwrite-existing
+      - name: kustomize + deploy
+        run: |
+          kubectl kustomize infra/k8s/overlays/prod | kubectl apply -f -
+      - name: rollout status
+        run: |
+          kubectl -n aurora rollout status deployment/aurora-assistant-api --timeout=180s

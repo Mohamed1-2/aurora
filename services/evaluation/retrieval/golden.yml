@@ -1,0 +1,153 @@
+# AURORA retrieval golden dataset — judged by manual intent against the
+# real Born/ID corpus. A case's `expected` items are the sections a well-
+# grounded assistant should cite; the harness scores rank quality.
+#
+# grade: primary (2, must-surface) or secondary (1, acceptable bonus).
+# section_like: substring matched against the retrieved section label.
+# page_label: printed page oracle when the manual pins one (page-anchor test).
+#
+# Corpus scope note: expected doc_ids refer to the *derived* corpus built by
+# scripts/rag_build_corpus.py (manuals stay outside the repo).
+
+cases:
+
+  - id: low-tyre-pressure
+    query: "The tyre pressure warning light came on, what should I do?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Wheels and tyres"
+        grade: primary
+
+  - id: fast-charge-dc
+    query: "How do I fast charge the Born with DC, up to 80 percent?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "High-voltage battery"
+        page_label: "77"
+        grade: primary
+      - doc_id: cupra-born-charging-appendix
+        grade: primary
+
+  - id: cold-range-loss
+    query: "Does cold weather reduce the driving range?"
+    notes: "Manual is silent on cold-weather range degradation; the DOE science record is the honest primary answer."
+    expected:
+      - doc_id: doe-cold-weather-bev
+        grade: primary
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Range"
+        grade: secondary
+
+  - id: charging-cable-protection
+    query: "Which protection device protects the charging cable and socket?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "High-voltage battery"
+        grade: primary
+
+  - id: puncture-wheel-change
+    query: "I have a puncture, how do I change the wheel?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Wheels and tyres"
+        page_label: "335"
+        grade: primary
+
+  - id: towing-vehicle
+    query: "How can I tow my Born using another vehicle?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Miscellaneous situations"
+        grade: primary
+
+  - id: airbags-seatbelts
+    query: "Which airbags does the Born have and how do seat belts work?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Safety"
+        grade: primary
+
+  - id: washer-fluid-topup
+    query: "How do I top up the windscreen washer fluid?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Checking and refilling levels"
+        page_label: "321"
+        grade: primary
+
+  - id: cabin-preheating
+    query: "How do I preheat or cool the cabin before I leave?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Air conditioning"
+        grade: primary
+      - doc_id: doe-cold-weather-bev
+        grade: secondary
+    primary_lower_tier: true
+
+  - id: care-mode-charge-limit
+    query: "What is battery Care Mode and how do I limit the charge level?"
+    expected:
+      - doc_id: cupra-born-charging-appendix
+        section_like: "High-voltage battery"
+        grade: primary
+      - doc_id: id-vehicles-service-description-software-3
+        section_like: "Battery Care Mode"
+        grade: secondary
+    primary_lower_tier: true
+
+  - id: e-charge-socket-unlock
+    query: "The charging socket cover is stuck, how do I unlock it manually?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "High-voltage battery"
+        grade: primary
+
+  - id: energy-recovery
+    query: "How does energy recovery and regenerative braking work?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Driving"
+        page_label: "157"
+        grade: primary
+
+  - id: red-brake-warning
+    query: "A red brake warning appeared on the dashboard, what should I do?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Driver information"
+        grade: primary
+
+  - id: charge-level-display
+    query: "How do I see the state of charge of the high voltage battery?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Driver information"
+        page_label: "17"
+        grade: primary
+
+  - id: winter-tyres
+    query: "Do I need winter tyres during cold weather?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Wheels and tyres"
+        grade: primary
+
+  - id: service-intervals
+    query: "How often should the vehicle be serviced?"
+    expected:
+      - doc_id: cupra-born-03-26-owners-manual
+        section_like: "Maintenance"
+        page_label: "343"
+        grade: primary
+
+  - id: rescue-high-voltage-disconnect
+    query: "In a rescue, what must be disconnected first on the high voltage vehicle?"
+    audience: responder
+    expected:
+      - doc_id: cupra-emergency-response-guide-2024
+        section_like: "Features on the exterior of the vehicle"
+        grade: primary
+      - doc_id: cupra-born-rescue-sheet
+        section_like: "Features on the exterior of the vehicle"
+        grade: secondary

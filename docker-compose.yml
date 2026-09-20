@@ -1,0 +1,120 @@
+name: aurora
+
+services:
+  telemetry-simulator:
+    build:
+      context: .
+      dockerfile: services/telemetry-simulator/Dockerfile
+    image: aurora.azurecr.io/telemetry-simulator:${IMAGE_TAG:-latest}
+    environment:
+      AURORA_TELEMETRY_VEHICLE_ID: ${AURORA_TELEMETRY_VEHICLE_ID:-ORION-X-TEST-01}
+      AURORA_TELEMETRY_HZ: ${AURORA_TELEMETRY_HZ:-10}
+      AURORA_TELEMETRY_SEED: ${AURORA_TELEMETRY_SEED:-20240627}
+      AURORA_TELEMETRY_LOG_LEVEL: ${AURORA_TELEMETRY_LOG_LEVEL:-INFO}
+    ports:
+      - "8101:8101"
+
+  llm-gateway:
+    build:
+      context: .
+      dockerfile: services/llm-gateway/Dockerfile
+    image: aurora.azurecr.io/llm-gateway:${IMAGE_TAG:-latest}
+    environment:
+      # Local/dev default is the grounded mock so the stack runs with zero cloud.
+      # Enable the Azure chain by setting AURORA_GATEWAY_PROVIDER_PRIORITY=azure-openai,openai,mock
+      # plus AURORA_GATEWAY_AZURE_OPENAI_ENDPOINT / _API_KEY in your .env.
+      AURORA_GATEWAY_PROVIDER_PRIORITY: ${AURORA_GATEWAY_PROVIDER_PRIORITY:-mock}
+      AURORA_GATEWAY_AZURE_OPENAI_ENDPOINT: ${AURORA_GATEWAY_AZURE_OPENAI_ENDPOINT:-}
+      AURORA_GATEWAY_AZURE_OPENAI_API_KEY: ${AURORA_GATEWAY_AZURE_OPENAI_API_KEY:-}
+      AURORA_GATEWAY_AZURE_OPENAI_DEPLOYMENT: ${AURORA_GATEWAY_AZURE_OPENAI_DEPLOYMENT:-aurora-chat}
+      AURORA_GATEWAY_AZURE_OPENAI_API_VERSION: ${AURORA_GATEWAY_AZURE_OPENAI_API_VERSION:-2024-06-01}
+      AURORA_GATEWAY_OPENAI_API_KEY: ${AURORA_GATEWAY_OPENAI_API_KEY:-}
+      AURORA_GATEWAY_OPENAI_BASE_URL: ${AURORA_GATEWAY_OPENAI_BASE_URL:-}
+      AURORA_GATEWAY_OPENAI_MODEL: ${AURORA_GATEWAY_OPENAI_MODEL:-gpt-4o-mini}
+      AURORA_GATEWAY_LOG_LEVEL: ${AURORA_GATEWAY_LOG_LEVEL:-INFO}
+    ports:
+      - "8102:8102"
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: services/rag-service/Dockerfile
+    image: aurora.azurecr.io/rag-service:${IMAGE_TAG:-latest}
+    environment:
+      AURORA_RAG_KB_DIR: /app/knowledge_base
+      AURORA_RAG_LOG_LEVEL: ${AURORA_RAG_LOG_LEVEL:-INFO}
+    ports:
+      - "8103:8103"
+
+  assistant-api:
+    build:
+      context: .
+      dockerfile: services/assistant-api/Dockerfile
+    image: aurora.azurecr.io/assistant-api:${IMAGE_TAG:-latest}
+    environment:
+      AURORA_ASSISTANT_ENVIRONMENT: ${AURORA_ASSISTANT_ENVIRONMENT:-production}
+      AURORA_ASSISTANT_TELEMETRY_WS: ws://telemetry-simulator:8101/ws
+      AURORA_ASSISTANT_TELEMETRY_HTTP: http://telemetry-simulator:8101
+      AURORA_ASSISTANT_RAG_URL: http://rag-service:8103
+      AURORA_ASSISTANT_GATEWAY_URL: http://llm-gateway:8102
+      AURORA_ASSISTANT_LOG_LEVEL: ${AURORA_ASSISTANT_LOG_LEVEL:-INFO}
+    ports:
+      - "8100:8100"
+    depends_on:
+      telemetry-simulator:
+        condition: service_started
+      llm-gateway:
+        condition: service_started
+      rag-service:
+        condition: service_started
+
+  monitoring:
+    build:
+      context: .
+      dockerfile: services/monitoring/Dockerfile
+    image: aurora.azurecr.io/monitoring:${IMAGE_TAG:-latest}
+    environment:
+      AURORA_MONITOR_TELEMETRY_WS: ws://telemetry-simulator:8101/ws
+      AURORA_MONITOR_BASELINE_FILE: /app/baseline.json
+      AURORA_MONITOR_SERVICES: assistant-api:http://assistant-api:8100,llm-gateway:http://llm-gateway:8102,rag-service:http://rag-service:8103,telemetry-simulator:http://telemetry-simulator:8101
+      AURORA_MONITOR_LOG_LEVEL: ${AURORA_MONITOR_LOG_LEVEL:-INFO}
+    ports:
+      - "8104:8104"
+    depends_on:
+      assistant-api:
+        condition: service_started
+
+  # CI/rollout gating job — not part of `docker compose up -d`.
+  # Run: docker compose run --rm eval --assistant http://assistant-eval:8100
+  # The eval harness replays a deterministic telemetry snapshot so the gate is stable.
+  assistant-eval:
+    build:
+      context: .
+      dockerfile: services/assistant-api/Dockerfile
+    image: aurora.azurecr.io/assistant-api:${IMAGE_TAG:-latest}
+    profiles: ["eval"]
+    environment:
+      AURORA_ASSISTANT_ENVIRONMENT: ci
+      AURORA_ASSISTANT_TELEMETRY_WS: ws://127.0.0.1:59999/ws
+      AURORA_ASSISTANT_TELEMETRY_REPLAY: /datasets/telemetry_snapshot.json
+      AURORA_ASSISTANT_RAG_URL: http://rag-service:8103
+      AURORA_ASSISTANT_GATEWAY_URL: http://llm-gateway:8102
+    volumes:
+      - ./services/evaluation/datasets:/datasets:ro
+
+  eval:
+    build:
+      context: .
+      dockerfile: services/evaluation/Dockerfile
+    image: aurora.azurecr.io/evaluation:${IMAGE_TAG:-latest}
+    profiles: ["eval"]
+    environment:
+      AURORA_ASSISTANT_ENVIRONMENT: ci
+    command: ["--assistant", "http://assistant-eval:8100", "--environment", "ci"]
+    depends_on:
+      rag-service:
+        condition: service_started
+      llm-gateway:
+        condition: service_started
+      assistant-eval:
+        condition: service_started

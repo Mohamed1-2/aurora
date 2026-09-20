@@ -1,0 +1,7 @@
+# Generate with: cp providers.tf terraform.auto.tfvars  (fill in your ids)
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id       = "00000000-0000-0000-0000-000000000000"
+location        = "eastus"
+environment     = "prod"
+node_count      = 2
+vm_size         = "Standard_D2s_v3"

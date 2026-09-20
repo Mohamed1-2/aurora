@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-service
+  namespace: aurora
+  labels: &labels
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: rag-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: rag-service
+          image: aurora.azurecr.io/rag-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8103}
+          envFrom:
+            - configMapRef: {name: aurora-env}
+            - secretRef: {name: aurora-secrets}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 1, memory: 768Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-service
+  namespace: aurora
+spec:
+  selector:
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: rag-service
+  ports:
+    - {port: 8103, targetPort: http}

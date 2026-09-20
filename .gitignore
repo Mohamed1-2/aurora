@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Environment
+.env
+
+# Runtime / local
+artifacts/
+**/*.log
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/**/.env
+.env.*
+nohup.out

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vehicle-ai-shared"
+version = "0.1.0"
+description = "Shared contracts, schemas and utilities for the AURORA In-Vehicle AI Assistant platform."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["vehicle_ai*"]

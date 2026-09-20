@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aurora
+  labels:
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/name: aurora-in-vehicle-ai-assistant
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aurora-env
+  namespace: aurora
+data:
+  AURORA_TELEMETRY_VEHICLE_ID: "ORION-X-TEST-01"
+  AURORA_TELEMETRY_HZ: "10"
+  AURORA_TELEMETRY_SEED: "20240627"
+  AURORA_TELEMETRY_LOG_LEVEL: "INFO"
+
+  AURORA_GATEWAY_PROVIDER_PRIORITY: "azure-openai,openai,mock"
+  AURORA_GATEWAY_PROVIDER_WEIGHTS: "azure-openai:3,openai:2,mock:1"
+  AURORA_GATEWAY_OPENAI_MODEL: "gpt-4o-mini"
+  AURORA_GATEWAY_AZURE_OPENAI_DEPLOYMENT: "aurora-chat"
+  AURORA_GATEWAY_AZURE_OPENAI_API_VERSION: "2024-06-01"
+  AURORA_GATEWAY_LOG_LEVEL: "INFO"
+
+  AURORA_RAG_KB_DIR: "/app/knowledge_base"
+  AURORA_RAG_LOG_LEVEL: "INFO"
+
+  AURORA_ASSISTANT_ENVIRONMENT: "production"
+  AURORA_ASSISTANT_PROMPT_VERSION: "aurora-prompt-v7"
+  AURORA_ASSISTANT_LOG_LEVEL: "INFO"
+  AURORA_ASSISTANT_TELEMETRY_WS: "ws://telemetry-simulator:8101/ws"
+  AURORA_ASSISTANT_TELEMETRY_HTTP: "http://telemetry-simulator:8101"
+  AURORA_ASSISTANT_RAG_URL: "http://rag-service:8103"
+  AURORA_ASSISTANT_GATEWAY_URL: "http://llm-gateway:8102"
+
+  AURORA_MONITOR_TELEMETRY_WS: "ws://telemetry-simulator:8101/ws"
+  AURORA_MONITOR_BASELINE_FILE: "/app/baseline.json"
+  AURORA_MONITOR_SERVICES: >-
+    assistant-api:http://assistant-api:8100,llm-gateway:http://llm-gateway:8102,
+    rag-service:http://rag-service:8103,telemetry-simulator:http://telemetry-simulator:8101
+  AURORA_MONITOR_LOG_LEVEL: "INFO"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aurora-secrets
+  namespace: aurora
+type: Opaque
+stringData:
+  # Populate via SealedSecrets / External Secrets (KeyVault CSI). Empty = mock provider.
+  AURORA_GATEWAY_AZURE_OPENAI_ENDPOINT: ""
+  AURORA_GATEWAY_AZURE_OPENAI_API_KEY: ""
+  AURORA_GATEWAY_OPENAI_API_KEY: ""
+  AURORA_GATEWAY_OPENAI_BASE_URL: ""
+  MLFLOW_TRACKING_URI: ""

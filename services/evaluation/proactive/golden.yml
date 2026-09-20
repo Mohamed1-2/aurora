@@ -1,0 +1,88 @@
+# WS4 proactive-detection golden evaluation (deterministic, in-process).
+#
+# Each scenario replays a scripted 10 Hz frame timeline through the pure
+# `ProactiveEvaluator` with an injected simulated clock, so cooldown/repeat
+# behaviour is reproducible rather than wall-clock dependent.
+#
+# Every detector is strictly signal-gated: timelines below always provide the
+# nominal signal set, and per-scenario dynamics only touch the signals the
+# scenario is about — a detector must never fire unless its own evidence moved.
+#
+# Expectations are exact: `expected` lists the alert types that MUST fire;
+# any emitted alert outside that list is scored as a false positive.
+
+version: 1
+poll_interval_s: 5.0
+hz: 10.0
+
+scenarios:
+  - id: none
+    profile: none
+    duration_s: 300
+    intensity: 0.0
+    expected: []
+    note: "Healthy cruise — no evidence anywhere, zero alerts required."
+
+  - id: leak
+    profile: leak
+    duration_s: 600
+    intensity: 1.0
+    expected:
+      - {type: tire_pressure_leak, severity: warning}
+    note: "Sustained RR-wheel TPMS leak (0.25 kPa/s, slope -15 kPa/min) — cooldown caps it."
+
+  - id: battery_heat
+    profile: battery_heat
+    duration_s: 600
+    intensity: 1.0
+    expected:
+      - {type: battery_overtemperature, severity: warning}
+      - {type: battery_overtemperature, severity: critical}  # monotonic escalation
+    note: "Cooling degraded — mean temp crosses 46 C then escalates past 54 C."
+
+  - id: range
+    profile: range
+    duration_s: 660
+    intensity: 1.0
+    expected:
+      - {type: low_range, severity: warning}
+    note: "DTE 30 km: fires, suppressed inside 600 s cooldown, re-emits after expiry."
+
+  - id: dtc
+    profile: dtc
+    duration_s: 600
+    intensity: 1.0
+    expected:
+      - {type: dtc_escalation, severity: critical}
+    note: "New active critical braking code C0031 surfaces, stays active."
+
+  - id: charge_healthy
+    profile: charge
+    duration_s: 300
+    intensity: 0.0
+    expected: []
+    note: "11 kW charge flow — charging_stall must NOT fire (false-positive guard)."
+
+  - id: charge_stalled
+    profile: charge_stalled
+    duration_s: 300
+    intensity: 1.0
+    expected:
+      - {type: charging_stall, severity: warning}
+    note: "Plugged with ~0.02 kW flow — stall detector fires."
+
+  - id: discharge
+    profile: discharge
+    duration_s: 600
+    intensity: 1.0
+    expected:
+      - {type: prediction_discharge_risk, severity: info}
+    note: "ML discharge model active, 10 pt SOC drop — fires only at 300 s coverage."
+
+  - id: discharge_fallback
+    profile: discharge_fallback
+    duration_s: 600
+    intensity: 1.0
+    expected:
+      - {type: prediction_discharge_risk, severity: info}
+    note: "Model unavailable -> physics estimate only, status fallback, never full."

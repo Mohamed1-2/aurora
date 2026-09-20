@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring
+  namespace: aurora
+  labels: &labels
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: monitoring
+          image: aurora.azurecr.io/monitoring:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8104}
+          envFrom:
+            - configMapRef: {name: aurora-env}
+            - secretRef: {name: aurora-secrets}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 500m, memory: 768Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitoring
+  namespace: aurora
+spec:
+  selector:
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: monitoring
+  ports:
+    - {port: 8104, targetPort: http}

@@ -1,0 +1,146 @@
+{
+  "created_at": 1789278833.3606231,
+  "scope": "live API; rule-based relevance and signal references, not human semantic scoring",
+  "cases": [
+    {
+      "question": "Battery level?",
+      "topic": "battery",
+      "answer": "Battery charge is 8%.",
+      "provider": "telemetry",
+      "latency_ms": 9.57,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "How much charge is remaining?",
+      "topic": "battery",
+      "answer": "Battery charge is 8%.",
+      "provider": "telemetry",
+      "latency_ms": 5.14,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "What is my state of charge?",
+      "topic": "battery",
+      "answer": "Battery charge is 8%.",
+      "provider": "telemetry",
+      "latency_ms": 4.25,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "How far can I drive?",
+      "topic": "range",
+      "answer": "Current estimated range is 15 kilometres.",
+      "provider": "telemetry",
+      "latency_ms": 3.87,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "how many kilometer I can drive",
+      "topic": "range",
+      "answer": "Current estimated range is 15 kilometres.",
+      "provider": "telemetry",
+      "latency_ms": 4.57,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "How much farther can we go?",
+      "topic": "range",
+      "answer": "Current estimated range is 15 kilometres.",
+      "provider": "telemetry",
+      "latency_ms": 4.71,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "What is my current range?",
+      "topic": "range",
+      "answer": "Current estimated range is 15 kilometres.",
+      "provider": "telemetry",
+      "latency_ms": 4.22,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "How fast are we going?",
+      "topic": "speed",
+      "answer": "Current speed is 110 kilometres per hour.",
+      "provider": "telemetry",
+      "latency_ms": 3.78,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "What is my speed?",
+      "topic": "speed",
+      "answer": "Current speed is 111 kilometres per hour.",
+      "provider": "telemetry",
+      "latency_ms": 3.84,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "Which tyre is lowest?",
+      "topic": "tyre",
+      "answer": "All four tyres are tied at 241.1 kPa.",
+      "provider": "telemetry",
+      "latency_ms": 3.81,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "Can I reach my destination?",
+      "topic": "destination",
+      "answer": "Set a destination distance in Trip & simulator controls first; I cannot assess an unspecified route.",
+      "provider": "telemetry",
+      "latency_ms": 4.88,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "Why?",
+      "topic": "clarification",
+      "answer": "Which reading or warning would you like me to explain?",
+      "provider": "telemetry",
+      "latency_ms": 3.85,
+      "relevant": true,
+      "reference_present": true,
+      "passed": true
+    },
+    {
+      "question": "Why?",
+      "context": "Can I reach my destination?",
+      "answer": "Set a destination distance in Trip & simulator controls first; I cannot assess an unspecified route.",
+      "latency_ms": 3.73,
+      "passed": true,
+      "relevant": true
+    },
+    {
+      "question": "What should I do?",
+      "context": "Can I reach my destination?",
+      "answer": "Set a destination distance in Trip & simulator controls first; I cannot assess an unspecified route.",
+      "latency_ms": 4.05,
+      "passed": true,
+      "relevant": true
+    }
+  ],
+  "passed": 14,
+  "total": 14,
+  "latency_median_ms": 4.135,
+  "latency_max_ms": 9.57
+}

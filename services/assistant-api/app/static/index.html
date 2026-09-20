@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0e161c"><meta name="description" content="AURORA — immersive, telemetry-driven EV cockpit. Every value comes from the vehicle.">
+  <title>AURORA · Cockpit</title><link rel="stylesheet" href="style.css?v=tour-3">
+</head>
+<body class="no-alerts">
+<div class="cockpit">
+  <!-- the road, behind the glass -->
+  <div class="view" aria-hidden="true"><div class="world"><div class="scene"></div><canvas id="roadCanvas"></canvas><div class="interior"></div></div></div>
+  <div class="no3d-note">WebGL unavailable — the interior is shown; cluster and console still run on real telemetry.</div>
+
+  <header>
+    <div class="brand">
+      <button id="brandMark" title="AURORA · tap ×5 or press E for Engineering mode">◉</button>
+      <div><b>AURORA</b><span id="brandSub"></span></div>
+    </div>
+    <span class="demo">SIMULATOR</span>
+    <div class="header-actions">
+      <span class="pill" id="provPill" data-prov="simulator">◉ sim</span>
+      <span class="pill ok" id="livePill"><span id="liveTxt">live</span></span>
+      <button class="pill eng" id="engPill" title="Engineering mode">⚙</button>
+      <button class="pill lab" id="labBtn" title="Scenario Director">🧪</button>
+      <button id="linkHud" title="Engineering console (/hud)">HUD</button>
+      <a href="/operations/" style="color:inherit;text-decoration:none;padding:8px" aria-label="Open AI Operations">Operations ↗</a>
+      <button id="tourStart" aria-label="Take a guided tour">Tour</button>
+      <button id="sound">Voice on</button>
+      <button id="fullscreen" aria-label="Toggle full screen">⛶</button>
+    </div>
+  </header>
+
+  <!-- windshield navigation HUD -->
+  <nav class="route" id="navCard">
+    <span class="route-arrow">↑</span>
+    <div><strong id="navDir">No destination set</strong><span id="navDest">Set one below to start a trip</span></div>
+    <span id="navEta"></span>
+    <div class="nav-beam"><li style="width:0%" id="navBar"></li></div>
+  </nav>
+
+  <div id="alertSlot"></div>
+  <div id="sceneNote" class="scene-note"></div>
+
+  <div class="pred" id="predChip"></div>
+  <div class="pred-pop" id="predPop" hidden>
+    <div class="pop-top"><b>What-if</b><button id="popClose" aria-label="Close">✕</button></div>
+    <div class="pop-row"><span>speed</span><input id="wiSpeed" type="range" min="0" max="200" step="5"><b id="wiSpeedV">--</b></div>
+    <div class="pop-row"><span>cabin</span><input id="wiCabin" type="range" min="12" max="30" step="1"><b id="wiCabinV">--</b></div>
+    <div class="pop-acts"><button id="wiRun" class="qact">Recompute arrival SOC</button><button id="wiReset" class="qact ghost">reset to current</button></div>
+    <div class="pop-out" id="wiOut"></div>
+  </div>
+
+  <!-- instrument cluster -->
+  <section class="instrument" aria-label="Vehicle instrument cluster">
+    <div class="inst-top"><span id="gear">D</span><span id="modeLabel">ECO</span><span id="cruiseTag" class="cruise">cruise --</span></div>
+    <div class="speed" id="speedWrap"><strong id="speedVal">--</strong><span class="unit">km/h</span></div>
+    <div class="inst-mid">
+      <svg class="soc" viewBox="0 0 120 120"><circle class="t" cx="60" cy="60" r="42"/><circle class="f" id="socArc" cx="60" cy="60" r="42"/></svg>
+      <div class="soc-txt"><b id="socVal">--</b><span>% · <b id="rangeVal">--</b> km</span></div>
+    </div>
+    <div class="pwr"><div class="pwr-bar"><li id="powerBar"></li></div><span id="powerVal">cruise</span></div>
+    <div class="thermal"><span>CELL&nbsp;<b id="battTemp">--</b></span><i class="track"><li id="battTempTrack"></li></i><span id="thermalSlope"></span></div>
+  </section>
+
+  <!-- ride status ribbon -->
+  <div class="ribbon" id="ribbon">
+    <span id="tyreTag" class="tyre">TYRES OK</span>
+    <i class="rsep"></i>
+    <span>HVAC <b id="hvacPwr">--</b></span>
+    <span>OUT <b id="outTemp">--</b></span>
+    <i class="rsep"></i>
+    <span>UNPARKED</span>
+  </div>
+
+  <!-- touchscreen console -->
+  <section class="screen" aria-label="AURORA assistant touchscreen">
+    <div class="screen-top"><span><b class="spark">✳</b> AURORA</span><span id="answerProvider">Assistant</span><time id="clock"></time></div>
+    <div id="transcript" class="transcript"></div>
+    <div id="answer" class="answer" aria-live="polite"><b>AURORA</b><span>Ready when you are.</span></div>
+    <div class="answer-actions"><button id="repeatAnswer" type="button">Repeat</button><button id="stopSpeech" type="button">Stop</button><button id="detailsToggle" type="button" aria-expanded="false" aria-controls="answerDetails">Details</button></div><div id="answerDetails" hidden></div>
+    <div id="chips" class="chips"></div>
+    <details class="vehicle-controls" id="demoJourney"><summary>Guided demo drive</summary>
+      <p id="journeyHint" aria-live="polite">Start a fresh 8 km simulated trip at 65% battery. This replaces the current simulation.</p>
+      <div class="chips"><button type="button" id="journeyReset">Start / reset demo</button><button type="button" id="journeyNext" disabled>Next step</button></div>
+    </details>
+    <form id="form" autocomplete="off">
+      <input aria-label="Ask AURORA" id="q" placeholder="Ask a quick question…" maxlength="300">
+      <button type="button" id="mic" class="mic" title="Hold to talk · tap when idle to end" aria-label="Ask by voice">🎙</button>
+      <button type="submit" id="send" aria-label="Send">↑</button>
+    </form>
+    <details class="vehicle-controls"><summary>Trip &amp; simulator controls</summary><div class="telemetry">
+      <div class="tclim"><span>CLIMATE</span><div><button id="cabinMinus" aria-label="Cooler">−</button><b id="cabinVal">--</b><button id="cabinPlus" aria-label="Warmer">+</button></div></div>
+      <div class="tcru"><span>CRUISE</span><div><button id="cruiseMinus" aria-label="Slower">−</button><b id="cruiseVal">--</b><button id="cruisePlus" aria-label="Faster">+</button></div></div>
+      <button id="chargeBtn" class="qact">Charge</button>
+    </div>
+    <div class="trip-row">
+      <input id="destKm" type="number" min="1" max="1500" step="1" placeholder="dest km" aria-label="Destination in km">
+      <button id="setDest" class="qact">Go</button>
+      <span class="or">or</span>
+      <select id="scenSel" aria-label="Scenario">
+        <option value="none">Clear</option>
+        <option value="leak">Leak drill</option>
+        <option value="battery_heat">Battery heat</option>
+        <option value="dtc">DTC drill</option>
+      </select>
+      <button id="scenGo" class="qact">Run</button>
+    </div>
+    </details>
+  </section>
+
+  <!-- charging overlay -->
+  <div class="charger" id="charger"><div class="charger-card">
+    <b>CHARGING</b><span class="chg-soc" id="chgSoc">--</span>
+    <span class="chg-sub">11 kW · AC Level 2 · <b id="chgPct">--</b></span>
+    <span class="chg-sub"></span><li class="chg-bar"></li>
+  </div></div>
+
+  <!-- engineering mode -->
+  <aside class="engpanel" id="engPanel">
+    <div class="eng-top"><b>Engineering</b><button id="engClose">✕</button></div>
+    <div class="eng-grid">
+      <section class="engsec span2">
+        <label>Base vs LoRA — same prompt, both grounded</label>
+        <div class="cmp-row"><input id="cmpQ" placeholder="Ask both: e.g. induced LOW PRESSURE → explain…"><button id="cmpRun">Run both</button></div>
+        <div class="cmp" id="cmpBase"><span class="who">peft-base · no LoRA</span><p class="out"></p></div>
+        <div class="cmp" id="cmpLora"><span class="who">peft · LoRA adapter2</span><p class="out"></p></div>
+      </section>
+      <section class="engsec">
+        <label>Providers <span>(peft-base vs peft)</span></label>
+        <div id="kvProv" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>RAG upstream</label>
+        <div id="ragLabel"></div>
+        <div id="kvRag" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Telemetry source</label>
+        <div id="kvSrc" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Prediction stack <span>(status · model · fallback)</span></label>
+        <div id="kvPred" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Safety &amp; policy</label>
+        <div id="kvSafety" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Latency &amp; diagnostics</label>
+        <div id="kvDiag" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Services</label>
+        <div id="svcHealth" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Provenance legend</label>
+        <div id="provLegend" class="kv-list"></div>
+      </section>
+      <section class="engsec">
+        <label>Voice engine</label>
+        <div class="vas">
+          <label class="rad"><input type="radio" name="voiceEngine" value="studio" id="vgStudio"><span>Local · macOS voice</span></label>
+          <label class="rad"><input type="radio" name="voiceEngine" value="browser" id="vgBrowser"><span>Browser · native synthesis</span></label>
+          <div class="voice-hint" id="voiceHint"></div>
+        </div>
+        <select id="studioPicker" hidden></select>
+        <select id="voicePicker"></select>
+        <div class="vas"><span>rate <b id="rateVal">0.99</b></span><input id="rateSlider" type="range" min="0.7" max="1.35" step="0.01" value="0.99"></div>
+        <div class="vas"><span>pitch <b id="pitchVal">1.00</b></span><input id="pitchSlider" type="range" min="0.6" max="1.4" step="0.01" value="1"></div>
+        <button id="voiceTest" class="qact">Test voice</button>
+      </section>
+    </div>
+  </aside>
+
+  <footer><span id="motionNote">Simulated driving environment</span><span class="ftr-links"><a class="hreflink" id="engFtr" href="#" onclick="return false">⚙ ENG</a><a class="hreflink" href="./hud/">Engineering console →</a></span></footer>
+</div>
+
+<!-- scenario director -->
+<aside class="director" id="director" aria-hidden="true">
+  <div class="dir-top"><b>Scenario Director</b><span class="dir-sub">one click → real vehicle commands, watch telemetry → prediction → why → alerts react</span><button id="direcClose" aria-label="Close drawer">✕</button></div>
+  <div class="dir-body">
+    <div class="dir-cards" id="direcCards"></div>
+    <div class="dir-log-col">
+      <div class="dir-log" id="direcLog"></div>
+      <div class="dir-check">
+        <b>Causal cascade — follow the reaction</b>
+        <ul id="direcCheck">
+          <li data-step="1">📡 condition lands in telemetry (source: simulator)</li>
+          <li data-step="2">🧮 prediction reacts (physics + calibrated residual)</li>
+          <li data-step="3">💬 ask AURORA <i>why</i> (deterministic explainer)</li>
+          <li data-step="4">🚨 proactive alert fires (code-decided) → <i>why</i></li>
+          <li data-step="5">📖 RAG citation grounds the answer</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<!-- conversation orb -->
+<div class="orbwrap">
+  <div class="orb" id="orb" title="Tap: conversation · Hold the 🎙 for a quick ask">
+    <div class="orb-ring" id="orbRing"></div>
+    <div class="orb-core"><span class="spark">✳</span></div>
+  </div>
+  <div class="orb-label" id="orbStatus">TAP ORB TO LISTEN</div>
+</div>
+
+<script src="world.js"></script>
+<script src="voice.js?v=journey-5"></script>
+<script src="driving.js?v=policy-6"></script>
+<script src="app.js?v=policy-6"></script>
+<script src="tour.js?v=tour-3"></script>
+</body>
+</html>

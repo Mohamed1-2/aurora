@@ -1,0 +1,40 @@
+{
+  "vehicle_id": "ORION-X-TEST-01",
+  "timestamp": 1720000000.0,
+  "seq": 12000,
+  "driving_mode": "eco",
+  "charging": false,
+  "signals": {
+    "vehicle_speed_kph": 42.0,
+    "accel_mps2": 0.4,
+    "motor_power_kw": 18.5,
+    "regen_power_kw": -9.2,
+    "battery_soc_pct": 68.4,
+    "battery_temp_c": 31.2,
+    "coolant_temp_c": 91.6,
+    "outside_temp_c": 16.0,
+    "cabin_temp_c": 21.5,
+    "cabin_humidity_pct": 41.0,
+    "fuel_level_pct": 1.0,
+    "charge_rate_kw": 0.0,
+    "distance_to_empty_km": 250.9,
+    "energy_session_kwh": 3.4,
+    "trip_distance_km": 12.5,
+    "accelerator_pedal_pct": 14.2,
+    "brake_pressure_pct": 0.0,
+    "tire_pressure_fl_kpa": 197.2,
+    "tire_pressure_fr_kpa": 236.4,
+    "tire_pressure_rl_kpa": 238.8,
+    "tire_pressure_rr_kpa": 241.1,
+    "battery_voltage_v": 331.7,
+    "charge_port_latched": 0.0
+  },
+  "active_dtcs": [
+    {"code": "P0420", "description": "Catalyst system efficiency below threshold (Bank 1)", "system": "Emissions", "severity": "warning"},
+    {"code": "C0031", "description": "Left front wheel speed sensor circuit failure - ABS degraded", "system": "Braking", "severity": "critical"}
+  ],
+  "warnings": [
+    {"kind": "tire_pressure_low", "message": "Low tire pressure: fl @ 197 kPa", "severity": "warning"}
+  ],
+  "gps": {"lat": 47.4502, "lon": -122.3088, "altitude_m": 120.0, "heading_deg": 84.0}
+}

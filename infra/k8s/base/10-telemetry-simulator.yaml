@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-simulator
+  namespace: aurora
+  labels: &labels
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: telemetry-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *labels
+  template:
+    metadata:
+      labels: *labels
+    spec:
+      containers:
+        - name: telemetry-simulator
+          image: aurora.azurecr.io/telemetry-simulator:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8101}
+          envFrom:
+            - configMapRef: {name: aurora-env}
+            - secretRef: {name: aurora-secrets}
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telemetry-simulator
+  namespace: aurora
+spec:
+  selector:
+    app.kubernetes.io/part-of: aurora
+    app.kubernetes.io/component: telemetry-simulator
+  ports:
+    - {port: 8101, targetPort: http}

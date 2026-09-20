@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: aurora
+namePrefix: aurora-
+
+resources:
+  - 00-namespace.yaml
+  - 10-telemetry-simulator.yaml
+  - 11-llm-gateway.yaml
+  - 12-rag-service.yaml
+  - 13-assistant-api.yaml
+  - 14-monitoring.yaml
+  - 15-ingress.yaml

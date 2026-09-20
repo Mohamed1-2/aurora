@@ -1,0 +1,6 @@
+pytest
+pytest-asyncio
+mlflow
+# Build-time only: corpus synthesis from the EVidence PDFs (rag_build_corpus.py).
+pymupdf
+-r services/calibration/requirements.txt

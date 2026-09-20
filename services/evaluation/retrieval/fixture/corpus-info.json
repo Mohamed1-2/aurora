@@ -1,0 +1,25 @@
+{
+  "primary_edition": "F-MANUAL",
+  "chunk_count": 8,
+  "sha256_of_all": "0b516af040387ac0957b5953ec2c25c941a609597076a8ce5bb8df05394f45f7",
+  "chunks_by_tier": {
+    "appendix": 1,
+    "family": 1,
+    "generic": 1,
+    "manual": 4,
+    "vehicle_specific": 1
+  },
+  "chunks_by_audience": {
+    "owner": 7,
+    "responder": 1
+  },
+  "sources_ingested": [
+    "F-APPENDIX",
+    "F-DOE",
+    "F-FAMILY",
+    "F-MANUAL",
+    "F-RESCUE"
+  ],
+  "sources_version_analysis_only": [],
+  "build_max_chars": 2200
+}

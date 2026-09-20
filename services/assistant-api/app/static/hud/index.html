@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AURORA · HUD</title>
+<link rel="stylesheet" href="./app.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">A</div>
+    <div>
+      <h1>AURORA&nbsp;<span class="eyebrow">HUD</span></h1>
+      <div class="sub" id="brand-sub">connecting…</div>
+    </div>
+  </div>
+  <nav id="nav">
+    <button data-view="drive" class="on">Drive</button>
+    <button data-view="ask">Ask</button>
+    <button data-view="alerts">Alerts</button>
+    <button data-view="predict">Predict</button>
+    <button data-view="inspect" class="inspect-only">Inspect</button>
+  </nav>
+  <div class="hud-meta">
+    <span class="pill warn" id="prov-pill" title="Where do these numbers come from?">◉ simulator</span>
+    <span class="pill ok" id="safety-pill">READ ONLY</span>
+    <button class="iconbtn" id="voice-on">Voice off</button>
+    <button class="iconbtn" id="cockpit-btn">Cockpit</button>
+    <span class="pill ok" id="live-pill"><span class="dot"></span><span id="live-text">live</span></span>
+  </div>
+</header>
+
+<!-- ======================= DRIVE ======================= -->
+<main id="view-drive" class="view on">
+  <section class="row" id="glance"></section>
+  <div id="alertbar"></div>
+  <section class="row">
+    <div class="card ask-quick">
+      <h3>Ask AURORA <span class="prov simulator"><i></i>wired to /v1/hud</span></h3>
+      <div class="askrow">
+        <button class="mic" id="mic-quick" title="Push to talk">🎙</button>
+        <input type="text" id="q-quick" placeholder='e.g. "Are my tyre pressures OK?" — tap the mic to speak' autocomplete="off" />
+        <button class="act" id="send-quick">Ask ➜</button>
+      </div>
+      <div class="chips">
+        <button class="pillq" onclick="askp('How is the car right now?')">vehicle status</button>
+        <button class="pillq" onclick="askp('What is my estimated range?')">range</button>
+        <button class="pillq" onclick="askp('Check my tyre pressures')">tyres</button>
+        <button class="pillq" onclick="askp('What does code C0031 mean?')">diagnostics</button>
+        <button class="pillq" onclick="askp('Disable battery thermal protection')">safety-test</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Live telemetry <span class="prov simulator"><i></i>simulator</span></h3>
+      <div class="kv" id="kv-live"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= ASK ======================= -->
+<main id="view-ask" class="view">
+  <section class="row">
+    <div class="card">
+      <h3>Conversation</h3>
+      <div id="chatlog"></div>
+      <div class="askrow">
+        <button class="mic" id="mic-ask" title="Push to talk">🎙</button>
+        <input type="text" id="q-ask" placeholder="Ask anything about the vehicle…" autocomplete="off" />
+        <button class="act" id="send-ask">Ask ➜</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Provenance <span class="prov documentation"><i></i>documentation</span></h3>
+      <p class="obs" id="prov-legend"></p>
+      <h4 class="chiphead">Citations</h4>
+      <div id="cites-side"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= ALERTS ======================= -->
+<main id="view-alerts" class="view">
+  <section class="row">
+    <div class="card">
+      <h3>Active alerts <span class="prov derived"><i></i>code-decided</span></h3>
+      <div id="active-list"></div>
+    </div>
+    <div class="card">
+      <h3>Detector gate</h3>
+      <p class="obs">Every detector is signal-gated: a missing signal means no inference, never a zero.</p>
+      <div class="detector-strip" id="det-strip"></div>
+      <h4 class="chiphead">Recent</h4>
+      <div id="recent-list"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= PREDICT ======================= -->
+<main id="view-predict" class="view">
+  <section class="row">
+    <div class="card">
+      <h3>Battery discharge · 300 s window <span class="prov prediction"><i></i>prediction</span></h3>
+      <div id="pred-summary"></div>
+    </div>
+    <div class="card">
+      <h3>Trip projection <span class="prov derived"><i></i>simulator</span></h3>
+      <div class="kv" id="kv-trip"></div>
+      <p class="obs">Arrival SOC is a physics projection for consistency on this simulation, not real-EV accuracy.</p>
+    </div>
+  </section>
+  <section class="row">
+    <div class="card">
+      <h3>Why is the prediction what it is?</h3>
+      <div id="pred-expl"></div>
+    </div>
+    <div class="card">
+      <h3>Prediction service</h3>
+      <div class="kv" id="kv-predserv"></div>
+      <h4 class="chiphead">Identity checks</h4>
+      <div id="pred-checks"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= INSPECT ======================= -->
+<main id="view-inspect" class="view inspect-only">
+  <section class="row">
+    <div class="card compare">
+      <h3>Base vs LoRA — same prompt, two adapters <span class="prov derived"><i></i>derived</span></h3>
+      <textarea id="cmp-q" placeholder="Ask one prompt and compare the base model with the LoRA adapter side by side…">How is my tyre pressure doing?</textarea>
+      <button class="act" id="cmp-run" style="margin-top:10px">Compare ➜</button>
+      <div class="cmpgrid">
+        <div class="cmpcard" id="cmp-base"><div class="who">peft-base · llama-2-7b</div><div class="out obs">run a comparison to see the base model answer</div></div>
+        <div class="cmpcard" id="cmp-lora"><div class="who">peft · astrolora-r8-alpha16</div><div class="out obs">run a comparison to see the LoRA adapter answer</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Providers</h3>
+      <div class="kv" id="kv-prov"></div>
+      <h4 class="chiphead">How the assistant is answered</h4>
+      <p class="obs" id="serving-note"></p>
+    </div>
+  </section>
+  <section class="row">
+    <div class="card">
+      <h3>RAG knowledge base <span class="prov documentation"><i></i>documentation</span></h3>
+      <div class="kv" id="kv-rag"></div>
+      <p class="obs" id="rag-label"></p>
+    </div>
+    <div class="card">
+      <h3>Service health</h3>
+      <div id="svc-health"></div>
+    </div>
+  </section>
+</main>
+
+<script src="./app.js"></script>
+</body>
+</html>

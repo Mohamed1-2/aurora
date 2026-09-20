@@ -1,0 +1,14 @@
+.venv
+__pycache__
+*.pyc
+.git
+.github
+artifacts
+docs
+infra
+scripts
+services/*/__pycache__
+.env
+makefile
+**/*.log
+.DS_Store

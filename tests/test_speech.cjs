@@ -1,0 +1,11 @@
+const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');
+const source = fs.readFileSync(process.argv[2], 'utf8').split('window.AuroraVoice')[0];
+const context = {}; vm.createContext(context); vm.runInContext(source, context);
+const say = context.auroraSpeechText;
+assert.equal(say('<10%'), 'less than 10 percent');
+assert.equal(say('≤10%'), 'less than or equal to 10 percent');
+assert.equal(say('>=42°C'), 'greater than or equal to 42 degrees Celsius');
+assert.equal(say('0.2% at 53 km/h'), '0.2 percent at 53 kilometres per hour');
+assert.equal(say('&lt;10%'), 'less than 10 percent');
+assert.ok(say('Charge level critical (<10%) — range limited.').includes('less than 10 percent'));
+console.log('6 speech-normalization checks passed');

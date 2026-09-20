@@ -1,0 +1,25 @@
+# Scheduled rollout gate. For deterministic signal checks it should run against
+# a replay-mode assistant (see docker-compose `assistant-eval` profile); against
+# the live assistant it validates grounding, refusal honesty and lexical quality.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: aurora-eval-gate
+  namespace: aurora
+spec:
+  schedule: "0 3 * * *" # daily 03:00 UTC
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: eval
+              image: aurora.azurecr.io/evaluation:latest
+              imagePullPolicy: IfNotPresent
+              args: ["--assistant", "http://aurora-assistant-api:8100", "--environment", "ci"]
+              env:
+                - {name: AURORA_ASSISTANT_ENVIRONMENT, value: ci}

@@ -1,0 +1,60 @@
+# AURORA retrieval golden — CI fixture edition.
+#
+# Runs against the committed synthetic corpus (services/evaluation/retrieval/
+# fixture/) so the metrics/gate code is exercised deterministically in CI
+# without the copyrighted evidence store. Same schema as golden.yml.
+
+cases:
+
+  - id: fc-80-percent
+    query: "How do I charge my battery to 80 percent quickly?"
+    expected:
+      - doc_id: fp-manual-owners
+        section_like: "Battery and charging"
+        page_label: "10"
+        grade: primary
+      - doc_id: fp-appendix-charging
+        section_like: "Charging settings"
+        page_label: "2"
+        grade: secondary
+
+  - id: fc-cold-range
+    query: "Does cold weather lower my driving range?"
+    expected:
+      - doc_id: fp-manual-owners
+        section_like: "Cold weather tips"
+        grade: primary
+      - doc_id: fp-doe-cold
+        section_like: "Cold weather performance"
+        grade: secondary
+    primary_lower_tier: true
+
+  - id: fc-rescue-disconnect
+    query: "What must I disconnect first during a rescue?"
+    audience: responder
+    expected:
+      - doc_id: fp-rescue-sheet
+        section_like: "High voltage cut-off"
+        page_label: "1"
+        grade: primary
+
+  - id: fc-wheel-change
+    query: "After a puncture, how do I change the wheel?"
+    expected:
+      - doc_id: fp-manual-owners
+        section_like: "Wheels and tyres"
+        page_label: "30"
+        grade: primary
+
+  - id: fc-charge-limit
+    query: "What charge limit should I use every day to keep the battery healthy?"
+    expected:
+      - doc_id: fp-manual-owners
+        section_like: "Battery and charging"
+        page_label: "10"
+        grade: primary
+      - doc_id: fp-appendix-charging
+        section_like: "Charging settings"
+        page_label: "2"
+        grade: secondary
+    primary_lower_tier: true
