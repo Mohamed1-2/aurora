@@ -1,0 +1,109 @@
+name: AURORA Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aurora-azure-main
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: |
+          python -m pip install 'uvicorn[standard]' fastapi 'pydantic>=2' pydantic-settings numpy prometheus-client httpx websockets pyyaml
+          python -m pip install -r requirements-dev.txt
+          python -m pip install -e shared
+      - name: Test
+        run: python -m pytest -q
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ACR_NAME: ${{ vars.ACR_NAME }}
+      ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AKS_NAME: ${{ vars.AKS_NAME }}
+      IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare demo configuration
+        run: |
+          python -m pip install PyYAML
+          python scripts/azure-demo/prepare.py
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build images on GitHub
+        run: |
+          set -euo pipefail
+          for svc in telemetry-simulator llm-gateway rag-service assistant-api; do
+            docker build --platform linux/amd64 \
+              -f "work/azure/Dockerfile.$svc" \
+              -t "$ACR_LOGIN_SERVER/$svc:$IMAGE_TAG" .
+          done
+      - name: Check container imports
+        run: |
+          set -euo pipefail
+          for svc in telemetry-simulator llm-gateway rag-service assistant-api; do
+            docker run --rm "$ACR_LOGIN_SERVER/$svc:$IMAGE_TAG" \
+              python -c 'import app.main'
+          done
+      - name: Push images to Azure Container Registry
+        run: |
+          set -euo pipefail
+          az acr login --name "$ACR_NAME"
+          for svc in telemetry-simulator llm-gateway rag-service assistant-api; do
+            docker push "$ACR_LOGIN_SERVER/$svc:$IMAGE_TAG"
+          done
+      - uses: azure/setup-kubectl@v4
+      - uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: 'v0.2.10'
+      - name: Connect to AKS
+        run: |
+          az aks get-credentials -g "$AZURE_RESOURCE_GROUP" -n "$AKS_NAME" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+          kubectl auth can-i create deployments -n aurora
+      - name: Deploy demo
+        run: |
+          set -euo pipefail
+          kubectl delete hpa assistant-api -n aurora --ignore-not-found
+          kubectl apply -f work/azure/deploy.yaml
+          for svc in telemetry-simulator llm-gateway rag-service assistant-api; do
+            kubectl rollout status "deployment/$svc" -n aurora --timeout=300s
+          done
+      - name: Check the assistant API
+        run: |
+          kubectl exec -n aurora deployment/assistant-api -- python -c \
+            'import urllib.request; print(urllib.request.urlopen("http://127.0.0.1:8100/healthz", timeout=15).read().decode())'
+          kubectl get services -n aurora
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get pods -n aurora || true
+          kubectl get events -n aurora --sort-by=.metadata.creationTimestamp || true
