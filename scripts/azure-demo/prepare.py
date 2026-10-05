@@ -42,12 +42,60 @@ for filename in files:
         documents.append(doc)
 
 documents.append({
+    'apiVersion': 'v1', 'kind': 'ConfigMap',
+    'metadata': {'name': 'aurora-caddy-config', 'namespace': 'aurora'},
+    'data': {'Caddyfile': '''aurora.mohammedaldoufani.com {
+    encode zstd gzip
+    reverse_proxy assistant-api:8100
+}
+'''},
+})
+documents.append({
+    'apiVersion': 'apps/v1', 'kind': 'Deployment',
+    'metadata': {'name': 'aurora-caddy', 'namespace': 'aurora'},
+    'spec': {
+        'replicas': 1,
+        'strategy': {'type': 'Recreate'},
+        'selector': {'matchLabels': {'app': 'aurora-caddy'}},
+        'template': {
+            'metadata': {'labels': {'app': 'aurora-caddy'}},
+            'spec': {
+                'containers': [{
+                    'name': 'caddy',
+                    'image': 'caddy:2.10.2-alpine',
+                    'ports': [
+                        {'name': 'http', 'containerPort': 80},
+                        {'name': 'https', 'containerPort': 443},
+                    ],
+                    'resources': {
+                        'requests': {'cpu': '25m', 'memory': '32Mi'},
+                        'limits': {'cpu': '200m', 'memory': '128Mi'},
+                    },
+                    'volumeMounts': [
+                        {'name': 'config', 'mountPath': '/etc/caddy'},
+                        {'name': 'data', 'mountPath': '/data'},
+                    ],
+                }],
+                'volumes': [
+                    {'name': 'config', 'configMap': {'name': 'aurora-caddy-config'}},
+                    {'name': 'data', 'emptyDir': {}},
+                ],
+            },
+        },
+    },
+})
+documents.append({
     'apiVersion': 'v1', 'kind': 'Service',
     'metadata': {'name': 'aurora-web', 'namespace': 'aurora'},
-    'spec': {'type': 'LoadBalancer',
-             'selector': {'app.kubernetes.io/part-of': 'aurora',
-                          'app.kubernetes.io/component': 'assistant-api'},
-             'ports': [{'name': 'http', 'port': 80, 'targetPort': 8100}]},
+    'spec': {
+        'type': 'LoadBalancer',
+        'loadBalancerIP': '172.184.184.95',
+        'selector': {'app': 'aurora-caddy'},
+        'ports': [
+            {'name': 'http', 'port': 80, 'targetPort': 80},
+            {'name': 'https', 'port': 443, 'targetPort': 443},
+        ],
+    },
 })
 (OUT / 'deploy.yaml').write_text(yaml.safe_dump_all(documents, sort_keys=False))
 print('Prepared demo Dockerfiles and work/azure/deploy.yaml')

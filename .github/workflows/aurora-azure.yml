@@ -97,6 +97,7 @@ jobs:
           for svc in telemetry-simulator llm-gateway rag-service assistant-api; do
             kubectl rollout status "deployment/$svc" -n aurora --timeout=300s
           done
+          kubectl rollout status deployment/aurora-caddy -n aurora --timeout=300s
       - name: Check the assistant API
         run: |
           kubectl exec -n aurora deployment/assistant-api -- python -c \
