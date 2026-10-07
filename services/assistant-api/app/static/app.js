@@ -446,13 +446,18 @@ function clean(text) { return String(text).replace(/[➜•🔋🎙📄◉≈|�
 function renderControls() {
   const c = state.control || {};
   const charging = !!c.charging;
+  const tripActive = !!c.trip_active;
   if (charging && !state.wasCharging) state.chargingOverlayDismissed = false;
   if (!charging) state.chargingOverlayDismissed = false;
   state.wasCharging = charging;
-  $("cabinVal").textContent = c.cabin_set_temp_c !== null && c.cabin_set_temp_c !== undefined ? `${fmt(c.cabin_set_temp_c, 0)}°` : "--";
-  $("cruiseVal").textContent = c.target_speed_kph !== null && c.target_speed_kph !== undefined ? `${fmt(c.target_speed_kph, 0)}` : "--";
+  $("cabinVal").textContent = c.cabin_set_temp_c !== null && c.cabin_set_temp_c !== undefined ? `${fmt(c.cabin_set_temp_c, 0)} °C` : "Not set";
+  $("cruiseVal").textContent = c.target_speed_kph !== null && c.target_speed_kph !== undefined ? `${fmt(c.target_speed_kph, 0)} km/h` : "0 km/h";
+  $("cabinMinus").disabled = !tripActive;
+  $("cabinPlus").disabled = !tripActive;
+  $("controlState").textContent = charging ? "Charging simulation active — you can continue using AURORA." : tripActive ? "Drive active — climate, cruise and predictions are now live." : "No drive running — start one above to enable climate.";
+  $("controlState").classList.toggle("active", charging || tripActive);
   $("chargeBtn").classList.toggle("on", charging);
-  $("chargeBtn").textContent = charging ? "Stop charging" : "Charge";
+  $("chargeBtn").textContent = charging ? "Stop charging" : "Start charging";
   document.body.classList.toggle("charging", charging && !state.chargingOverlayDismissed);
   if (charging) {
     const soc = sig("battery_soc_pct").value || 0;
@@ -482,8 +487,8 @@ async function setCruise(delta) {
   await postControl("/v1/control/speed", { speed_kph: next }, `cruise → ${fmt(next, 0)} km/h`);
 }
 async function setCabin(delta) {
-  const base = (state.control && state.control.cabin_set_temp_c) || 21;
-  if (base === null || base === undefined) { toast("climate needs an active destination — start a trip"); return; }
+  const base = state.control && state.control.cabin_set_temp_c;
+  if (!state.control?.trip_active || base === null || base === undefined) { toast("Start a simulated drive first to enable climate."); return; }
   const next = Math.min(30, Math.max(12, base + delta));
   await postControl("/v1/control/hvac", { cabin_temp_c: next }, `cabin set point → ${fmt(next, 0)}°`);
 }

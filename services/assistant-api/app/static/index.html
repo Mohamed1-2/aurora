@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0e161c"><meta name="description" content="AURORA — immersive, telemetry-driven EV cockpit. Every value comes from the vehicle.">
-  <title>AURORA · Cockpit</title><link rel="stylesheet" href="style.css?v=charge-controls-1">
+  <title>AURORA · Cockpit</title><link rel="stylesheet" href="style.css?v=guided-controls-1">
 </head>
 <body class="no-alerts">
 <div class="cockpit">
@@ -88,22 +88,34 @@
       <button type="button" id="mic" class="mic" title="Hold to talk · tap when idle to end" aria-label="Ask by voice">🎙</button>
       <button type="submit" id="send" aria-label="Send">↑</button>
     </form>
-    <details class="vehicle-controls"><summary>Trip &amp; simulator controls</summary><div class="telemetry">
-      <div class="tclim"><span>CLIMATE</span><div><button id="cabinMinus" aria-label="Cooler">−</button><b id="cabinVal">--</b><button id="cabinPlus" aria-label="Warmer">+</button></div></div>
-      <div class="tcru"><span>CRUISE</span><div><button id="cruiseMinus" aria-label="Slower">−</button><b id="cruiseVal">--</b><button id="cruisePlus" aria-label="Faster">+</button></div></div>
-      <button id="chargeBtn" class="qact">Charge</button>
+    <details class="vehicle-controls" id="simControls"><summary>Test-drive controls <span>Start here</span></summary>
+    <div class="control-step">
+      <div class="control-copy"><b>1 · Start a simulated drive</b><span>Choose how far you want to drive. This enables climate and live energy predictions.</span></div>
+      <div class="trip-start">
+        <label for="destKm">Distance</label>
+        <input id="destKm" type="number" min="1" max="1500" step="1" value="8" aria-label="Destination distance in kilometres">
+        <span>km</span>
+        <button id="setDest" class="qact primary">Start drive</button>
+      </div>
+      <p class="control-state" id="controlState" aria-live="polite">No drive running — start one above.</p>
     </div>
-    <div class="trip-row">
-      <input id="destKm" type="number" min="1" max="1500" step="1" placeholder="dest km" aria-label="Destination in km">
-      <button id="setDest" class="qact">Go</button>
-      <span class="or">or</span>
+    <div class="control-step">
+      <div class="control-copy"><b>2 · Try vehicle controls</b><span>Change the cabin target or simulated cruise speed while telemetry updates.</span></div>
+      <div class="telemetry">
+        <div class="control-card tclim"><span>Cabin temperature</span><small>Available during a drive</small><div><button id="cabinMinus" aria-label="Make cabin cooler">−</button><b id="cabinVal">Not set</b><button id="cabinPlus" aria-label="Make cabin warmer">+</button></div></div>
+        <div class="control-card tcru"><span>Cruise target</span><small>Simulated speed</small><div><button id="cruiseMinus" aria-label="Reduce cruise speed">−</button><b id="cruiseVal">0 km/h</b><button id="cruisePlus" aria-label="Increase cruise speed">+</button></div></div>
+        <div class="control-card charge-control"><span>Charging</span><small>Park and simulate AC charging</small><button id="chargeBtn" class="qact">Start charging</button></div>
+      </div>
+    </div>
+    <div class="trip-row advanced-controls">
+      <span class="advanced-label">Advanced fault test</span>
       <select id="scenSel" aria-label="Scenario">
-        <option value="none">Clear</option>
-        <option value="leak">Leak drill</option>
-        <option value="battery_heat">Battery heat</option>
-        <option value="dtc">DTC drill</option>
+        <option value="none">Clear active test</option>
+        <option value="leak">Tyre leak</option>
+        <option value="battery_heat">Battery overheating</option>
+        <option value="dtc">Diagnostic trouble code</option>
       </select>
-      <button id="scenGo" class="qact">Run</button>
+      <button id="scenGo" class="qact">Run test</button>
     </div>
     </details>
   </section>
@@ -216,7 +228,7 @@
 <script src="world.js"></script>
 <script src="voice.js?v=journey-5"></script>
 <script src="driving.js?v=policy-6"></script>
-<script src="app.js?v=charge-controls-1"></script>
+<script src="app.js?v=guided-controls-1"></script>
 <script src="tour.js?v=tour-3"></script>
 </body>
 </html>

@@ -127,18 +127,27 @@ time{font-size:11px;color:#7f989f}
 #form button{border-radius:50%;width:28px;height:28px;flex-shrink:0}
 #send{background:#b9e6d8;color:#16392f;font-size:16px}
 .mic{background:rgba(255,255,255,.08);border:1px solid var(--line)}
-.telemetry{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.telemetry>div>span{font-size:9px;color:#8ea8af;letter-spacing:1.4px;display:block;margin-bottom:5px}
+.control-step{padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.control-copy{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}.control-copy b{font-size:11px;color:#d6e8e5}.control-copy span{font-size:10px;line-height:1.35;color:#819aa2}
+.trip-start{display:flex;align-items:center;gap:6px}.trip-start label{font-size:10px;color:#91aaa9}.trip-start span{font-size:10px;color:#91aaa9}
+.trip-start input[type=number]{width:54px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12px;padding:7px 8px}
+.qact.primary{background:var(--mint);border-color:var(--mint);color:#123b31;font-weight:600;flex:1}
+.control-state{margin:8px 0 0;font-size:10px;color:#d4a66f}.control-state.active{color:var(--ok)}
+.telemetry{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.control-card{padding:9px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.025)}
+.telemetry>div>span{font-size:9px;color:#b3c9cb;letter-spacing:.8px;display:block;margin-bottom:2px}
+.control-card small{display:block;min-height:22px;font-size:8px;line-height:1.25;color:#718a92}
 .telemetry>div>div{display:flex;align-items:center;gap:9px}
 .telemetry button{background:none;color:#9dc9c3;font-size:15px;line-height:1;padding:2px 3px}
-.telemetry b{font-size:17px;font-weight:400;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
+.telemetry b{font-size:13px;font-weight:400;min-width:58px;text-align:center;font-variant-numeric:tabular-nums}
+.telemetry button:disabled{opacity:.3;cursor:not-allowed}.charge-control{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center}.charge-control small{grid-column:1}.charge-control .qact{grid-column:2;grid-row:1/3;font-size:10px;padding:7px 9px}
 .qact{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:11px;color:#cfe0e2}
 .qact:hover{background:rgba(159,227,206,.13)}
 #chargeBtn.on{background:var(--ok);color:#123c28;border-color:var(--ok)}
 .trip-row{display:flex;align-items:center;gap:6px}
-.trip-row input[type=number]{width:74px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;color:var(--text);font-size:12px;padding:6px 8px}
 .trip-row select{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;color:#cfe0e2;font-size:11px;padding:6px 4px;flex:1;min-width:0}
 .trip-row .or{font-size:10px;color:#718a92}
+.advanced-controls{padding-top:11px}.advanced-label{font-size:9px;color:#82999f;white-space:nowrap}
 
 /* ---------- orb ---------- */
 .orbwrap{position:absolute;z-index:6;right:6%;top:44%;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
@@ -316,7 +325,7 @@ body:not(.eng) .alerts-msg em, body:not(.eng) footer {display:none}
 .chips{flex-wrap:nowrap}.chips button{min-width:0;min-height:42px;font-size:12px;border-radius:12px}
 #form{margin-top:10px}#form input{font-size:15px;padding:12px 2px}#form button{width:42px;height:42px}
 .vehicle-controls{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
-.vehicle-controls summary{font-size:12px;color:#9bb3b2;cursor:pointer}.vehicle-controls[open] .telemetry{margin:18px 0}.vehicle-controls .trip-row{margin-top:12px}
+.vehicle-controls summary{font-size:12px;color:#9bb3b2;cursor:pointer}.vehicle-controls summary span{float:right;font-size:9px;color:var(--mint);text-transform:uppercase;letter-spacing:1px}.vehicle-controls[open] .telemetry{margin-top:7px}.vehicle-controls .trip-row{margin-top:0}
 .instrument{right:7%;bottom:9%;width:230px;background:rgba(10,24,30,.92);padding:24px;border-radius:24px}
 .speed strong{font-size:72px}.soc{width:62px;height:62px}.soc-txt b{font-size:22px}
 .orbwrap{right:12%;top:auto;bottom:43%;}.orb{width:76px;height:76px}.orb-label{letter-spacing:.5px;font-size:11px}
