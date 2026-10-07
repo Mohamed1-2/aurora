@@ -157,12 +157,18 @@ body.speaking .orb{background:radial-gradient(circle at 34% 26%,#dcf1f0,#5a9fc0)
 /* ---------- charging overlay ---------- */
 .charger{position:absolute;z-index:8;inset:0;display:none;place-items:center;background:rgba(6,12,16,.55);backdrop-filter:blur(2px)}
 body.charging .charger{display:grid}
-.charger-card{text-align:center;padding:26px 44px;border-radius:20px;background:linear-gradient(145deg,#12301f,#0a1912);border:1px solid rgba(127,220,143,.5);box-shadow:0 0 46px rgba(127,220,143,.2);animation:charger-in .3s ease}
+.charger-card{position:relative;text-align:center;padding:30px 44px 26px;border-radius:20px;background:linear-gradient(145deg,#12301f,#0a1912);border:1px solid rgba(127,220,143,.5);box-shadow:0 0 46px rgba(127,220,143,.2);animation:charger-in .3s ease}
 @keyframes charger-in{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
 .charger-card b{letter-spacing:3px;color:var(--ok)}
 .chg-soc{display:block;font-size:54px;font-weight:600;font-variant-numeric:tabular-nums;margin:6px 0}
-.chg-sub{font-size:12px;color:#a6c7b6}
+.chg-sub{display:block;font-size:12px;color:#a6c7b6;margin-top:5px}
 .chg-bar{display:block;width:220px;height:8px;border-radius:5px;margin:14px auto 0;background:rgba(255,255,255,.12);transition:width 1s ease}
+.charger-close{position:absolute;right:10px;top:9px;width:30px;height:30px;border-radius:50%;background:transparent;color:#a6c7b6;font-size:15px}
+.charger-close:hover{background:rgba(255,255,255,.1);color:#fff}
+.charger-actions{display:flex;justify-content:center;gap:9px;margin-top:18px}
+.charger-actions button{padding:8px 12px;border-radius:8px;border:1px solid rgba(127,220,143,.45);background:rgba(127,220,143,.12);color:#dff7e5;font-size:11px}
+.charger-actions button:hover{background:rgba(127,220,143,.22)}
+#chargeStop{border-color:rgba(255,174,126,.4);background:rgba(255,174,126,.1);color:#ffd4ba}
 
 /* ---------- engineering panel ---------- */
 .engpanel{position:fixed;z-index:12;top:0;right:0;bottom:0;width:min(460px,96vw);background:#0d1620f2;border-left:1px solid var(--line);backdrop-filter:blur(12px);padding:18px;transform:translateX(105%);transition:transform .25s ease;display:flex;flex-direction:column;gap:12px;overflow:auto}

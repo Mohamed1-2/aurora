@@ -47,6 +47,7 @@ const state = {
   history: [], sessionId: createSessionId(), lastAnswer: "", requestId: 0, voiceOn: true, session: false, engine: "Eco",
   flow: "idle", timer: null, lastActivity: Date.now(),
   speaking: false, listening: false, meter: false,
+  chargingOverlayDismissed: false, wasCharging: false,
 };
 
 /* ------------------------------ fixture -------------------------------- */
@@ -444,12 +445,16 @@ function wireDirector() {
 function clean(text) { return String(text).replace(/[➜•🔋🎙📄◉≈|—–]/g, "").replace(/\s+/g, " ").trim(); }
 function renderControls() {
   const c = state.control || {};
+  const charging = !!c.charging;
+  if (charging && !state.wasCharging) state.chargingOverlayDismissed = false;
+  if (!charging) state.chargingOverlayDismissed = false;
+  state.wasCharging = charging;
   $("cabinVal").textContent = c.cabin_set_temp_c !== null && c.cabin_set_temp_c !== undefined ? `${fmt(c.cabin_set_temp_c, 0)}°` : "--";
   $("cruiseVal").textContent = c.target_speed_kph !== null && c.target_speed_kph !== undefined ? `${fmt(c.target_speed_kph, 0)}` : "--";
-  $("chargeBtn").classList.toggle("on", !!c.charging);
-  $("chargeBtn").textContent = c.charging ? "Charging…" : "Charge";
-  document.body.classList.toggle("charging", !!c.charging);
-  if (c.charging) {
+  $("chargeBtn").classList.toggle("on", charging);
+  $("chargeBtn").textContent = charging ? "Stop charging" : "Charge";
+  document.body.classList.toggle("charging", charging && !state.chargingOverlayDismissed);
+  if (charging) {
     const soc = sig("battery_soc_pct").value || 0;
     const rate = sig("charge_rate_kw").value || 0;
     $("chgSoc").textContent = `${fmt(soc, 1)}%`;
@@ -457,6 +462,11 @@ function renderControls() {
     document.querySelector(".charger-card .chg-bar").style.width = `${Math.min(100, soc)}%`;
   }
   if (c.cabin_set_temp_c === null || c.cabin_set_temp_c === undefined) $("cabinVal").title = "climate needs a destination";
+}
+function dismissChargingOverlay() {
+  state.chargingOverlayDismissed = true;
+  document.body.classList.remove("charging");
+  $("chargeBtn").focus();
 }
 async function postControl(path, body, ok) {
   try {
@@ -740,6 +750,16 @@ function wireControls() {
   $("setDest").onclick = startTrip;
   $("destKm").addEventListener("keydown", e => { if (e.key === "Enter") startTrip(); });
   $("chargeBtn").onclick = toggleCharge;
+  $("chargeClose").onclick = dismissChargingOverlay;
+  $("chargeBackground").onclick = dismissChargingOverlay;
+  $("chargeStop").onclick = async () => {
+    dismissChargingOverlay();
+    await toggleCharge();
+  };
+  $("charger").onclick = e => { if (e.target === $("charger")) dismissChargingOverlay(); };
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && document.body.classList.contains("charging")) dismissChargingOverlay();
+  });
   $("scenGo").onclick = runScenario;
 }
 

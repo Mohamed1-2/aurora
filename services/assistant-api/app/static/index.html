@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0e161c"><meta name="description" content="AURORA — immersive, telemetry-driven EV cockpit. Every value comes from the vehicle.">
-  <title>AURORA · Cockpit</title><link rel="stylesheet" href="style.css?v=tour-3">
+  <title>AURORA · Cockpit</title><link rel="stylesheet" href="style.css?v=charge-controls-1">
 </head>
 <body class="no-alerts">
 <div class="cockpit">
@@ -109,10 +109,15 @@
   </section>
 
   <!-- charging overlay -->
-  <div class="charger" id="charger"><div class="charger-card">
-    <b>CHARGING</b><span class="chg-soc" id="chgSoc">--</span>
+  <div class="charger" id="charger" role="dialog" aria-modal="true" aria-labelledby="chargeTitle"><div class="charger-card">
+    <button class="charger-close" id="chargeClose" aria-label="Continue using the app while charging">✕</button>
+    <b id="chargeTitle">CHARGING</b><span class="chg-soc" id="chgSoc">--</span>
     <span class="chg-sub">11 kW · AC Level 2 · <b id="chgPct">--</b></span>
-    <span class="chg-sub"></span><li class="chg-bar"></li>
+    <span class="chg-sub">The simulation continues in the background.</span><i class="chg-bar"></i>
+    <div class="charger-actions">
+      <button id="chargeBackground">Continue in background</button>
+      <button id="chargeStop">Stop charging</button>
+    </div>
   </div></div>
 
   <!-- engineering mode -->
@@ -211,7 +216,7 @@
 <script src="world.js"></script>
 <script src="voice.js?v=journey-5"></script>
 <script src="driving.js?v=policy-6"></script>
-<script src="app.js?v=policy-6"></script>
+<script src="app.js?v=charge-controls-1"></script>
 <script src="tour.js?v=tour-3"></script>
 </body>
 </html>
