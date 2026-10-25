@@ -1,74 +1,77 @@
 <div align="center">
 
-<img src="docs/assets/aurora-hero.svg" alt="AURORA — an in-vehicle AI assistant built around telemetry, knowledge and policy-aware answers" width="100%" />
+<img src="docs/assets/aurora-hero.svg" alt="AURORA — simulated in-vehicle AI assistant" width="100%" />
 
-[![Azure workflow](https://github.com/Mohamed1-2/aurora/actions/workflows/aurora-azure.yml/badge.svg)](https://github.com/Mohamed1-2/aurora/actions/workflows/aurora-azure.yml)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
-![Docker](https://img.shields.io/badge/Packaging-Docker-2496ED?logo=docker&logoColor=white)
-![Azure AKS](https://img.shields.io/badge/Deployment-Azure_AKS-0078D4)
+# AURORA
 
-**A simulation-first vehicle assistant that connects live signals, retrieved knowledge, and a reproducible deployment pipeline.**
+**A local, simulation-first prototype for an in-vehicle AI assistant and its MLOps platform.**
 
-[Architecture](#architecture) · [Try it locally](#try-it-locally) · [Azure delivery](#from-github-to-azure) · [Engineering tour](#engineering-tour) · [Project scope](#project-scope)
+[Run locally](#run-locally) · [How it works](#how-it-works) · [Operations](#operations-and-evaluation) · [Azure delivery configuration](#azure-delivery-configuration) · [Honest scope](#honest-scope)
 
 </div>
 
-## The idea in 30 seconds
+> **Current status — local prototype.** AURORA runs on a developer machine at `http://localhost:8100`. It uses simulated vehicle telemetry. The repository contains Azure AKS/ACR delivery automation, but this README does **not** claim that a live Azure deployment currently exists. A successful GitHub Actions run and a reachable Azure endpoint are required evidence for that claim.
 
-A driver asks, **“Why is my range dropping?”** A useful answer needs more than a language model: it needs the vehicle's current state and relevant information about the vehicle.
+## What AURORA demonstrates
 
-AURORA brings those together. It reads simulated EV telemetry, retrieves relevant knowledge passages, applies a request policy, and builds a response from that context. The default **mock provider** generates deterministic responses without a model API key; external model providers are optional.
+AURORA answers driver questions using current simulated EV signals, retrieved vehicle knowledge, deterministic safety policy, and an optional local language model.
 
-| Read the vehicle | Find the evidence | Explain the result |
-| :--- | :--- | :--- |
-| Charge, range, temperature, energy and diagnostic signals | BM25 retrieval over packaged knowledge, with support for a prepared manual corpus | Context-aware responses, available source citations and deterministic policy handling |
+| A driver asks | AURORA uses | Typical result |
+| --- | --- | --- |
+| “What is the battery level?” | Fresh telemetry + deterministic logic | A short numeric answer from the current simulator state |
+| “Can I reach my destination?” | Range, destination and trip state | A reachability answer or a charging-shortfall warning |
+| “Why does cold weather reduce range?” | Retrieved knowledge + configured model | A grounded explanation with available source metadata |
+| “Disable battery thermal protection.” | Safety policy | A deterministic refusal; no model call is needed |
 
-> **Project scope:** an engineering and learning demo, not a certified automotive system. The default stream is simulated. No real vehicle actuation or production safety certification is claimed.
+The browser cockpit includes live vehicle instruments, typing and browser-voice input, alerts, guided onboarding, simulator controls, and an Operations dashboard at [`/operations/`](http://localhost:8100/operations/) when running locally.
 
-## Architecture
+## How it works
 
-<img src="docs/assets/architecture.svg" alt="Application architecture: browser to assistant API, connected to telemetry, RAG and LLM gateway services; optional model providers and evaluation tooling" width="100%" />
+```mermaid
+flowchart LR
+    D[Driver cockpit] --> A[Assistant API :8100]
+    T[Telemetry simulator :8101] -->|WebSocket frames| A
+    A --> P[Policy + deterministic facts]
+    A --> R[RAG service :8103]
+    A --> G[LLM gateway :8102]
+    R --> G
+    G --> L[Optional local / OpenAI-compatible provider]
+    P --> O[Grounded answer]
+    G --> O
+    O --> D
+    A --> X[Operations: traces, evaluation, release state]
+```
 
-### Follow one question
+### Main services
 
-1. **Ask.** The browser sends a question to the assistant API.
-2. **Classify.** The API identifies the intent and applies the request policy. Restricted and prohibited requests receive deterministic handling before a model call.
-3. **Read.** The assistant gathers the recent telemetry window: the latest measurements and trends.
-4. **Retrieve.** The RAG service finds relevant document passages. RAG means *retrieval-augmented generation*: give the responder evidence before asking it to answer.
-5. **Respond.** The gateway invokes the configured provider. The mock provider is the default; configured model providers can use the same context.
-6. **Return.** The API returns the answer and associated response metadata, including available citations.
+| Service | Port | Responsibility |
+| --- | ---: | --- |
+| `assistant-api` | 8100 | Cockpit UI, request policy, telemetry grounding, RAG orchestration and answers |
+| `telemetry-simulator` | 8101 | Simulated EV state, trips, warnings, charging and scenarios |
+| `llm-gateway` | 8102 | Provider routing, safety gate, cache, fallback and circuit breakers |
+| `rag-service` | 8103 | BM25 retrieval over packaged vehicle knowledge |
+| `monitoring` | 8104 | Local service-health, drift and AI-quality signals |
 
-### The services, in plain language
+## Response paths
 
-| Service | Responsibility | Port | Current Azure demo |
-| :--- | :--- | :---: | :---: |
-| **assistant-api** | Hosts the dashboard; coordinates policy, telemetry, retrieval and answers | `8100` | Deployed by workflow |
-| **telemetry-simulator** | Produces simulated EV measurements and controllable scenarios | `8101` | Deployed by workflow |
-| **rag-service** | Searches the knowledge pack and an optional prepared corpus | `8103` | Deployed by workflow |
-| **llm-gateway** | Routes provider calls; implements caching and fallback behavior | `8102` | Deployed by workflow |
-| **monitoring** | Exposes drift, service-health and AI-quality information | `8104` | Separate from demo workflow |
-| **evaluation** | Runs offline scoring and model/retrieval comparisons | — | Separate tooling |
+Not every question is sent to a language model.
 
-“Deployed by workflow” describes the configuration, not a confirmed live release. Use the Actions badge and rollout results to inspect the latest run.
+1. **Policy first.** Prohibited vehicle-control requests are refused before generation.
+2. **Direct facts when possible.** Current battery, range, speed and tyre readings are calculated from fresh telemetry, which avoids asking a model to invent numbers.
+3. **RAG for knowledge questions.** The API retrieves relevant knowledge passages and passes them to the configured provider.
+4. **Gateway routing.** The gateway chooses a configured provider, records metadata, and falls back when a provider fails.
 
-## What you can explore
+The local development default is a deterministic grounded mock provider, so the stack works without an API key. This machine can optionally use Ollama with `qwen2.5-coder:7b`; that is a general local instruction-following model, not a validated automotive model.
 
-| Capability | Example | What powers it |
-| :--- | :--- | :--- |
-| Vehicle questions | “What is my current range and charge?” | Aggregated telemetry + grounded response |
-| Diagnostics | “Do I have active trouble codes?” | DTC signals + retrieved explanations |
-| Scenario testing | Change simulated charging or fault conditions | Simulator controls and scenario API |
-| Dashboard / HUD | Inspect vehicle state as it changes | Browser interface + assistant API |
-| Policy behavior | Ask to disable a safety system | Deterministic request classification and refusal |
-| Prediction & explanation experiments | Inspect energy drivers and what-if behavior | Physics and optional calibration components |
-| Model experiments | Compare baseline and LoRA-assisted responses | Separate training and evaluation tools |
+## Run locally
 
-Prediction, replay and model experiments have additional dependency or artifact requirements. Their presence in the repository does not mean the minimal Azure image includes everything needed to run them.
+### Prerequisites
 
-## Try it locally
+- Python 3.11
+- `make`
+- Optional: Ollama, only for local language-model generation
 
-Use **Python 3.11**. These commands start the services on your machine and use the mock provider, so no AI API key is required.
+### Start the stack
 
 ```bash
 git clone https://github.com/Mohamed1-2/aurora.git
@@ -82,186 +85,162 @@ python -m pip install 'uvicorn[standard]' fastapi 'pydantic>=2' \
 python -m pip install -e shared
 python -m pip install -r requirements-dev.txt
 
-export AURORA_GATEWAY_PROVIDER_PRIORITY=mock
-export AURORA_RAG_KB_DIR="$PWD/services/rag-service/knowledge_base"
+# Starts simulator, gateway, RAG, assistant and monitoring locally.
 make services
 ```
 
-Open **[localhost:8100](http://localhost:8100)** for the dashboard. On Windows, use WSL for the shell and Make commands above.
+Open [http://localhost:8100](http://localhost:8100). The dashboard should show `SIMULATOR` and live telemetry.
 
-Test a request:
+Try a live request:
 
 ```bash
 curl --fail-with-body http://localhost:8100/v1/ask \
   -H 'Content-Type: application/json' \
-  --data '{"question":"What is my current range and state of charge?"}'
+  --data '{"question":"What is my current range and state of charge?","response_style":"concise"}'
 ```
 
-The numeric answer changes with the simulator state. The mock provider is deterministic for a given context; it is not a locally running generative model.
-
-<details>
-<summary><strong>Useful local commands</strong></summary>
+Useful commands:
 
 ```bash
-# Run the Python tests in the active environment.
-python -m pytest -q
-
-# Inspect the assistant log.
-tail -f /tmp/aurora-assistant.log
-
-# Stop this development stack.
-make stop
+make test              # Python test suite
+make demo              # Scripted end-to-end questions
+make eval-e2e          # Replay-mode evaluation against the local stack
+make logs              # Tail local service logs
+make stop              # Stop local uvicorn processes
 ```
 
-`make stop` uses a process-name match for `uvicorn app.main`; it can also stop other local processes with that command. Use it in a dedicated development session.
+`make stop` matches local `uvicorn app.main` processes. Use it only in a dedicated AURORA development environment.
 
-The repository also contains Docker Compose configuration. The Azure workflow generates adjusted Dockerfiles that preserve the directory structure used by runtime imports; do not assume those generated images and the original Compose builds are identical.
+### Optional local model
 
-</details>
+To use an Ollama-compatible local model, configure `services/llm-gateway/.env`:
 
-## From GitHub to Azure
+```ini
+AURORA_GATEWAY_LOCAL_ENABLED=true
+AURORA_GATEWAY_LOCAL_BASE_URL=http://127.0.0.1:11434/v1
+AURORA_GATEWAY_LOCAL_MODEL=qwen2.5-coder:7b
+```
 
-<img src="docs/assets/deployment.svg" alt="Deployment architecture: GitHub push triggers tests and Docker builds, images go to Azure Container Registry, AKS runs the services and a load balancer exposes the dashboard" width="100%" />
+Restart the gateway after changing settings. If the local model is unavailable, the gateway can use its offline provider fallback. Browser/macOS speech is separate from the language model.
 
-The active workflow is **[AURORA Azure](.github/workflows/aurora-azure.yml)**. It runs on pushes to `main` and supports manual execution.
+## Operations and evaluation
 
-| Stage | What happens | Why it matters |
-| :--- | :--- | :--- |
-| **Test** | Run pytest | Catch regressions before deployment |
-| **Prepare** | Generate demo Dockerfiles and Kubernetes YAML | Keep the demo configuration explicit |
-| **Authenticate** | Exchange a GitHub OIDC token for Azure credentials | Avoid a stored, long-lived Azure password |
-| **Build & check** | Build four Linux images and import each application | Catch packaging and startup-import failures |
-| **Publish** | Push uniquely tagged images to private ACR | Associate each image with a commit and workflow run |
-| **Deploy** | Apply manifests and wait for deployment rollouts | Confirm pods reach the expected ready state |
-| **Health check** | Call the assistant health endpoint inside its pod | Confirm the process answers a basic health request |
+The Operations dashboard makes the MLOps parts of the prototype visible.
 
-**A health check is not an end-to-end quality evaluation.** Retrieval, grounded-answer quality, browser behavior and model experiments require their own checks. The current workflow does not run the separate golden-set evaluation gate.
+### Request traces
 
-### One-time setup vs. every release
+For each request, `/operations/` can show the executed stages: policy and intent, telemetry snapshot, retrieval, LLM gateway, provider/model, cache state, sources and timings. The trace store retains only the last 100 completed requests in process memory and clears on restart.
 
-**Once:** create or select the AKS cluster; run [setup-azure.sh](scripts/azure-demo/setup-azure.sh) to configure ACR, GitHub federation, role assignments, a namespace and repository variables. Review its repository/branch and subscription settings before running it for another account.
+### Replay evaluation and local release control
 
-**Every release:** push to `main`; GitHub's runner builds and publishes images, then updates AKS. Docker runs on the runner, so a developer does not need to keep their laptop online after the push.
+The project uses frozen telemetry and retrieval excerpts to make checks repeatable. The local release gate requires:
 
-<details>
-<summary><strong>Inspect a deployment from your terminal</strong></summary>
+- All 21 replay turns to pass: 18 deterministic and 3 model turns.
+- Model replies to come from the selected provider/model.
+- Evaluation model requests to be uncached.
+- Each model turn to complete within the configured 35-second bound.
+- The source fingerprint and stored evidence to remain unchanged.
 
-Prerequisites: authenticated `az` and `gh`, plus `kubectl` and Azure `kubelogin`.
+Passing this gate allows a **local configuration** activation and rollback. It changes generation settings such as temperature and output limit; it does not deploy new model weights, approve a vehicle feature, or create a cloud release.
+
+### Controlled failure demonstration
+
+The Operations dashboard also runs an isolated fault experiment using the production gateway router:
+
+1. A synthetic primary provider responds normally.
+2. A synthetic timeout is injected.
+3. The router falls back to a synthetic backup provider.
+4. The circuit breaker skips the failed provider during cooldown.
+5. The primary path recovers after cooldown.
+
+This proves the local routing behavior with test providers. It is not evidence of cloud-outage resilience or automotive-grade availability.
+
+## Fine-tuning and model experiments
+
+The repository includes a supervised fine-tuning experiment using LoRA.
+
+| Capability | Status in this project |
+| --- | --- |
+| Supervised fine-tuning (SFT) | Included as a separate experiment |
+| LoRA | Included: SmolLM2-135M-Instruct adapter, rank 8, alpha 16, targeting `q_proj` and `v_proj` |
+| QLoRA | Not demonstrated as the live serving path |
+| RLHF / DPO / reward modelling | Not implemented |
+| Continued pre-training | Not implemented |
+| Distributed multi-GPU training | Not implemented |
+| DeepSpeed / Megatron-LM | Not used |
+
+The saved LoRA artifacts document a training experiment. They are **not** the model currently serving the local cockpit by default. See [the fine-tuning guide](docs/finetuning.md) for dataset provenance, the CI-safe simulation path, real GPU training instructions and evaluation limitations.
+
+## Azure delivery configuration
+
+This repository includes a deployment path for Azure, but the configuration itself is not proof of an active deployment.
+
+| Included in the repository | What it does |
+| --- | --- |
+| [Azure workflow](.github/workflows/aurora-azure.yml) | On `main`, tests the project, builds four Linux images, signs in with GitHub OIDC, pushes images to Azure Container Registry, then applies AKS manifests |
+| [`scripts/azure-demo/setup-azure.sh`](scripts/azure-demo/setup-azure.sh) | Creates/configures ACR, GitHub OIDC identity, AKS access and repository variables for a named Azure environment |
+| [`scripts/azure-demo/prepare.py`](scripts/azure-demo/prepare.py) | Produces the demo Dockerfiles and Kubernetes manifest used by the workflow |
+| [`infra/k8s/`](infra/k8s/) | Kubernetes service configuration |
+| [`infra/terraform/`](infra/terraform/) | Separate infrastructure provisioning path |
+
+For the workflow to deploy, the GitHub repository must have valid Azure variables (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AKS_NAME`, `ACR_NAME`, and `ACR_LOGIN_SERVER`), a reachable AKS cluster, and successful workflow evidence.
+
+The workflow deploys a small demo configuration: one replica per core service, HTTP exposure, mock provider by default, and recreate updates. It does not by itself provide TLS, user authentication, durable state, production secrets management, fleet-scale telemetry ingestion, data-residency controls or automotive certification.
+
+To confirm a real deployment, inspect the GitHub Actions run and Azure resources after setup:
 
 ```bash
-# Inspect recent pipeline runs.
 gh run list --repo Mohamed1-2/aurora --workflow aurora-azure.yml --limit 5
-
-# Connect to the configured demo cluster.
 az aks get-credentials --resource-group aurora-rg --name aurora
 kubelogin convert-kubeconfig -l azurecli
-
-# Inspect desired replicas, running pods and network services.
 kubectl get deployments,pods,services -n aurora
-
-# Read recent application logs.
-kubectl logs -n aurora deployment/assistant-api --tail=100
-
-# Find the demo's public IP. Open http://EXTERNAL-IP when assigned.
-kubectl get service aurora-web -n aurora
 ```
 
-A failed test blocks the deploy job. `ImagePullBackOff` points toward image or registry access problems; `CrashLoopBackOff` calls for application logs; `Pending` requires inspecting scheduling events.
+## Safety and scope
 
-</details>
+This is an engineering and learning prototype, not a certified automotive system.
 
-### Cost and deployment boundaries
+It deliberately demonstrates useful engineering controls—fresh telemetry checks, deterministic policy decisions, grounded retrieval, model fallback, replay evaluation, traces and local rollback—but it does **not** establish safe road use.
 
-The generated demo runs **one replica per core service**, uses the **mock provider**, disables proactive polling, and uses **Recreate** updates. Recreate stops the old pod before replacing it, so releases can interrupt service.
+Not included or validated:
 
-AKS nodes, registry storage and networking are billable resources. “Free” AKS cluster management does not make those resources free. Stopping the cluster reduces compute use, but retained resources may still cost money.
+- A real CAN bus, ECU or vehicle connection.
+- Real vehicle actuation.
+- Navigation-provider integration.
+- Cabin-noise voice recognition testing.
+- Human semantic scoring of all model outputs.
+- Automotive safety validation or ISO 26262 compliance.
+- Production authentication, tenancy, rate limiting and incident response.
+- Confirmed Azure production deployment.
 
-The demo exposes **HTTP**, not configured HTTPS. TLS, user authentication, rate limits, durable application state and recovery procedures are next steps before a production release. Some debug UI calls still target localhost; operations endpoints deliberately restrict access to local clients.
-
-## Quality, policy and model experiments
-
-### Policy before generation
-
-| Request class | Behavior |
-| :--- | :--- |
-| Read-only | Build a response from vehicle and document context |
-| Safe action | Follow the implemented application policy |
-| Restricted action | Return deterministic confirmation-required handling |
-| Prohibited action | Refuse without consulting the language model |
-
-These are application controls and testable behaviors—not proof of automotive safety or authorization to control a real vehicle.
-
-### Reproducible experiments
-
-- **Replay:** fixed telemetry snapshots make repeatable answer comparisons possible.
-- **Retrieval:** BM25 indexing and retrieval tests make document selection inspectable.
-- **Evaluation:** golden-set scoring covers signal accuracy, grounding, refusal and policy behavior.
-- **Fine-tuning:** separate simulation and real PEFT/LoRA paths distinguish pipeline exercises from actual model training.
-- **Monitoring:** separate drift and quality tooling helps inspect changes over time.
-
-The data pipelines support TUM driving telemetry and EPFL charging sessions as separate domains. Review source licenses and provenance before redistribution; real telemetry inputs do not make synthetically generated question–answer pairs human-labelled ground truth.
-
-## Engineering tour
-
-For a technical walkthrough or interview, explain the system in this order:
-
-1. **Problem:** a vehicle assistant needs current measurements and relevant knowledge.
-2. **Design:** separate telemetry, retrieval and provider routing behind one assistant API.
-3. **Packaging:** Docker images capture application code and runtime dependencies.
-4. **Delivery:** GitHub Actions tests, builds, publishes and deploys to AKS.
-5. **Identity:** OIDC establishes who the workflow is; role assignments determine what it can do.
-6. **Evidence:** show a real workflow run, pod status, logs and an actual API response.
-7. **Tradeoffs:** one-node learning environment, process-local state, mock AI and incomplete production hardening.
-
-| Common term | Plain-language meaning |
-| :--- | :--- |
-| Container image | Packaged application and its dependencies |
-| Container | A running instance of an image |
-| Registry | A store for built images |
-| Pod | Kubernetes' smallest deployable unit |
-| Deployment | Desired application image and replica count |
-| Service | Stable networking for a set of pods |
-| CI / CD | Automated checks / automated delivery or deployment |
-| OIDC | A way to establish identity using signed tokens |
-| RAG | Retrieve relevant evidence before generating an answer |
-
-## Explore the repository
+## Repository map
 
 ```text
-.github/workflows/aurora-azure.yml   Active Azure delivery workflow
-scripts/azure-demo/                 Azure setup + demo manifest generator
-services/assistant-api/             Dashboard, policy, context and API
-services/telemetry-simulator/       EV simulation and scenario engine
-services/rag-service/               Retrieval and packaged knowledge
-services/llm-gateway/               Provider routing and completions
-services/calibration/               Prediction/calibration experiments
-services/evaluation/                Datasets, scoring and comparisons
-services/monitoring/                Drift and quality monitoring
-shared/vehicle_ai/                 Shared schemas and utilities
-infra/k8s/                         Kubernetes configuration
-infra/terraform/                   Separate infrastructure provisioning path
-tests/                             Python test suite
+services/assistant-api/       Cockpit, policy, grounding and API
+services/telemetry-simulator/ EV simulation and scenario engine
+services/rag-service/         Retrieval and knowledge pack
+services/llm-gateway/         Provider routing, caching and fallback
+services/evaluation/          Replay datasets, scoring and model comparisons
+services/monitoring/          Drift and quality monitoring
+shared/vehicle_ai/            Shared schemas and utilities
+evaluation/replay-v1/         Frozen replay cases
+artifacts/                    Local experiment output; ignored by Git
+infra/k8s/                    Kubernetes configuration
+infra/terraform/              Infrastructure examples
+scripts/azure-demo/           Azure setup and manifest preparation
+docs/                         Architecture, dataset, fine-tuning and demo guides
+tests/                        Unit and integration tests
 ```
 
-## Go deeper
+## Suggested interview description
 
-| Guide | What you will learn |
-| :--- | :--- |
-| [Architecture](docs/architecture.md) | Telemetry, grounding, service contracts and scoring |
-| [Interactive demo](docs/interactive-demo.md) | Application walkthrough and controls |
-| [Dataset design](docs/dataset.md) | Data generation, provenance and split strategy |
-| [Fine-tuning](docs/finetuning.md) | Simulation vs. real training and comparisons |
-| [Operations showcase](docs/operations-showcase.md) | Local trace and release-management experiments |
-| [Azure workflow](.github/workflows/aurora-azure.yml) | The exact automated delivery steps |
+> “I built AURORA as a local in-vehicle assistant and MLOps prototype. It combines simulated live vehicle telemetry, deterministic safety controls, RAG, an LLM gateway with fallback and circuit breakers, replay evaluation, a LoRA/SFT experiment, request tracing, release gating and rollback. I am explicit that the current application is local and simulation-first; Azure AKS delivery automation is included but must be verified by a successful cloud deployment.”
 
-For deployment behavior, the active workflow and `scripts/azure-demo/prepare.py` are the source of truth. Older infrastructure examples may use different names, replica counts or release gates.
+## Further reading
 
----
-
-<div align="center">
-
-**Understand the vehicle. Retrieve the evidence. Make the system inspectable.**
-
-AURORA · Python microservices · Retrieval · Simulation · Azure delivery
-
-</div>
+- [Architecture](docs/architecture.md)
+- [Interactive cockpit and guided tour](docs/interactive-demo.md)
+- [Dataset design and provenance](docs/dataset.md)
+- [Fine-tuning guide](docs/finetuning.md)
+- [Operations showcase](docs/operations-showcase.md)
+- [Azure workflow](.github/workflows/aurora-azure.yml)
